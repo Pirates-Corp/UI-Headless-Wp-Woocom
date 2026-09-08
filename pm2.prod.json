@@ -2,9 +2,9 @@
   "apps": [
     {
       "name": "Frontend_Headless_Woocommerce_WP_POC_Prod",
-      "script": "pnpm",
+      "script": "npm",
       "interpreter": "none",
-      "args": "start:mainbranch",
+      "args": "run start:mainbranch",
       "autorestart": false,
       "max_restarts": "2",
       "restart_delay": "5000"
