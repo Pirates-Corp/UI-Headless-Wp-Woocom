@@ -4,6 +4,8 @@ import type {
   WooV3Product,
   WooV3Variation,
   CurrencySettings,
+  WooCountry,
+  WooState,
 } from "./types";
 
 const WP_URL = `${process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL}://${process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST}`;
@@ -12,12 +14,36 @@ const REST_API_URL = `${WP_URL}/wp-json/wc/v3`;
 
 // ─── Store API helpers (cart / checkout / orders) ────────────────────────────
 
+/** Helper to extract Nonce from Response headers */
+export function extractNonce(res: Response): string | null {
+  return (
+    res.headers.get("Nonce") ||
+    res.headers.get("nonce") ||
+    res.headers.get("X-WC-Store-API-Nonce") ||
+    res.headers.get("x-wc-store-api-nonce") ||
+    null
+  );
+}
+
+/** Helper to extract Cart-Token from Response headers */
+export function extractCartToken(res: Response): string | null {
+  return (
+    res.headers.get("Cart-Token") ||
+    res.headers.get("cart-token") ||
+    null
+  );
+}
+
 /** Build headers for cart-mutating requests. */
-function cartHeaders(cartToken?: string): Record<string, string> {
+function cartHeaders(cartToken?: string, nonce?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   if (cartToken) headers["Cart-Token"] = cartToken;
+  if (nonce) {
+    headers["Nonce"] = nonce;
+    headers["X-WC-Store-API-Nonce"] = nonce;
+  }
   return headers;
 }
 
@@ -25,13 +51,65 @@ async function cartFetch(
   url: string,
   body: unknown,
   cartToken?: string,
+  nonce?: string,
 ): Promise<Response> {
-  return fetch(url, {
+  let activeToken = cartToken;
+  let activeNonce = nonce;
+
+  // If nonce is missing, fetch the cart first to acquire session nonce and cart token
+  if (!activeNonce) {
+    try {
+      const initRes = await getCartFromServer(activeToken);
+      const initNonce = extractNonce(initRes);
+      const initToken = extractCartToken(initRes);
+      if (initNonce) activeNonce = initNonce;
+      if (initToken) activeToken = initToken;
+    } catch (err) {
+      console.warn("[cartFetch] Failed to pre-fetch cart nonce:", err);
+    }
+  }
+
+  let res = await fetch(url, {
     method: "POST",
-    headers: cartHeaders(cartToken),
+    headers: cartHeaders(activeToken, activeNonce),
     body: JSON.stringify(body),
     cache: "no-store",
   });
+
+  // If request failed with 401 missing or invalid nonce, fetch a fresh nonce and retry once
+  if (res.status === 401) {
+    try {
+      const cloned = res.clone();
+      const errJson = (await cloned.json().catch(() => null)) as {
+        code?: string;
+      } | null;
+      if (
+        errJson?.code === "woocommerce_rest_missing_nonce" ||
+        errJson?.code === "woocommerce_rest_invalid_nonce" ||
+        errJson?.code === "rest_cookie_invalid_nonce"
+      ) {
+        console.info(
+          "[cartFetch] Nonce missing/invalid. Refreshing nonce and retrying...",
+        );
+        const refreshRes = await getCartFromServer(activeToken);
+        const refreshedNonce = extractNonce(refreshRes);
+        const refreshedToken = extractCartToken(refreshRes);
+        if (refreshedNonce) activeNonce = refreshedNonce;
+        if (refreshedToken) activeToken = refreshedToken;
+
+        res = await fetch(url, {
+          method: "POST",
+          headers: cartHeaders(activeToken, activeNonce),
+          body: JSON.stringify(body),
+          cache: "no-store",
+        });
+      }
+    } catch (retryErr) {
+      console.warn("[cartFetch] Retry on nonce failure failed:", retryErr);
+    }
+  }
+
+  return res;
 }
 
 // ─── REST API v3 helpers (products) ──────────────────────────────────────────
@@ -94,7 +172,7 @@ let currencyCache: CurrencySettings | null = null;
  * Fetch the store's currency configuration from `/wc/v3/settings/general`.
  * Cached in-memory after first call (per server process).
  */
-async function getCurrencySettings(): Promise<CurrencySettings> {
+export async function getCurrencySettings(): Promise<CurrencySettings> {
   if (currencyCache) return currencyCache;
 
   try {
@@ -155,7 +233,7 @@ async function getCurrencySettings(): Promise<CurrencySettings> {
 }
 
 /** Common currency code → symbol lookup. */
-function getCurrencySymbol(code: string): string {
+export function getCurrencySymbol(code: string): string {
   const symbols: Record<string, string> = {
     USD: "$", EUR: "€", GBP: "£", JPY: "¥", AUD: "A$", CAD: "C$",
     CHF: "CHF", CNY: "¥", SEK: "kr", NZD: "NZ$", MXN: "$", SGD: "S$",
@@ -168,6 +246,130 @@ function getCurrencySymbol(code: string): string {
     LKR: "Rs", MMK: "K",
   };
   return symbols[code] || code;
+}
+
+// ─── Country & State data (fetched from WC REST API /data/countries and cached) ──
+
+let countriesCache: WooCountry[] | null = null;
+
+// WooCommerce is authoritative. This small supplement only fills the known
+// UAE gap when the API returns the country without any state records.
+const SUPPLEMENTAL_COUNTRY_STATES: Record<string, WooState[]> = {
+  AE: [
+    { code: "AZ", name: "Abu Dhabi" },
+    { code: "AJ", name: "Ajman" },
+    { code: "DU", name: "Dubai" },
+    { code: "FU", name: "Fujairah" },
+    { code: "RK", name: "Ras Al Khaimah" },
+    { code: "SH", name: "Sharjah" },
+    { code: "UQ", name: "Umm Al Quwain" },
+  ],
+};
+
+function addRequiredStateData(countries: WooCountry[]): WooCountry[] {
+  return countries.map((country) => {
+    const supplementalStates = SUPPLEMENTAL_COUNTRY_STATES[country.code.toUpperCase()];
+    if (!supplementalStates || country.states?.length) return country;
+    return { ...country, states: supplementalStates };
+  });
+}
+
+const FALLBACK_COUNTRIES: WooCountry[] = [
+  {
+    code: "IN",
+    name: "India",
+    states: [
+      { code: "AP", name: "Andhra Pradesh" },
+      { code: "AR", name: "Arunachal Pradesh" },
+      { code: "AS", name: "Assam" },
+      { code: "BR", name: "Bihar" },
+      { code: "CT", name: "Chhattisgarh" },
+      { code: "GA", name: "Goa" },
+      { code: "GJ", name: "Gujarat" },
+      { code: "HR", name: "Haryana" },
+      { code: "HP", name: "Himachal Pradesh" },
+      { code: "JH", name: "Jharkhand" },
+      { code: "KA", name: "Karnataka" },
+      { code: "KL", name: "Kerala" },
+      { code: "MP", name: "Madhya Pradesh" },
+      { code: "MH", name: "Maharashtra" },
+      { code: "MN", name: "Manipur" },
+      { code: "ML", name: "Meghalaya" },
+      { code: "MZ", name: "Mizoram" },
+      { code: "NL", name: "Nagaland" },
+      { code: "OR", name: "Odisha" },
+      { code: "PB", name: "Punjab" },
+      { code: "RJ", name: "Rajasthan" },
+      { code: "SK", name: "Sikkim" },
+      { code: "TN", name: "Tamil Nadu" },
+      { code: "TG", name: "Telangana" },
+      { code: "TR", name: "Tripura" },
+      { code: "UP", name: "Uttar Pradesh" },
+      { code: "UT", name: "Uttarakhand" },
+      { code: "WB", name: "West Bengal" },
+      { code: "AN", name: "Andaman and Nicobar Islands" },
+      { code: "CH", name: "Chandigarh" },
+      { code: "DN", name: "Dadra and Nagar Haveli and Daman and Diu" },
+      { code: "DL", name: "Delhi" },
+      { code: "JK", name: "Jammu and Kashmir" },
+      { code: "LA", name: "Ladakh" },
+      { code: "LD", name: "Lakshadweep" },
+      { code: "PY", name: "Puducherry" },
+    ],
+  },
+  {
+    code: "GB",
+    name: "United Kingdom (UK)",
+    states: [],
+  },
+  {
+    code: "AE",
+    name: "United Arab Emirates",
+    states: [
+      { code: "AZ", name: "Abu Dhabi" },
+      { code: "AJ", name: "Ajman" },
+      { code: "DU", name: "Dubai" },
+      { code: "FU", name: "Fujairah" },
+      { code: "RK", name: "Ras Al Khaimah" },
+      { code: "SH", name: "Sharjah" },
+      { code: "UQ", name: "Umm Al Quwain" },
+    ],
+  },
+  {
+    code: "US",
+    name: "United States (US)",
+    states: [
+      { code: "CA", name: "California" },
+      { code: "NY", name: "New York" },
+      { code: "TX", name: "Texas" },
+      { code: "FL", name: "Florida" },
+      { code: "WA", name: "Washington" },
+    ],
+  },
+];
+
+/**
+ * Fetch country and state data from WooCommerce REST API v3 `/wc/v3/data/countries`.
+ * Cached in-memory per server process to avoid repeated remote network calls.
+ * Gracefully falls back to fallback dataset if WooCommerce is unreachable.
+ */
+export async function getCountriesFromServer(): Promise<WooCountry[]> {
+  if (countriesCache) return countriesCache;
+
+  try {
+    const countries = await restApiFetchJson<WooCountry[]>("/data/countries");
+    if (Array.isArray(countries) && countries.length > 0) {
+      countriesCache = addRequiredStateData(countries);
+      return countriesCache;
+    }
+  } catch (err) {
+    console.warn(
+      "[getCountriesFromServer] WooCommerce REST API unreachable, using resilient fallback:",
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+
+  return FALLBACK_COUNTRIES;
 }
 
 // ─── v3 → Store API normalizer ──────────────────────────────────────────────
@@ -431,7 +633,7 @@ export async function searchProducts(query: string): Promise<WooProduct[]> {
   return getProducts({ search: query, per_page: 20 });
 }
 
-// ─── Cart (Store API — unchanged) ───────────────────────────────────────────
+// ─── Cart (Store API) ───────────────────────────────────────────
 
 export async function getCartFromServer(cartToken?: string): Promise<Response> {
   return fetch(`${STORE_API_URL}/cart`, {
@@ -445,37 +647,51 @@ export async function addToCartOnServer(
   quantity: number,
   variation?: { attribute: string; value: string }[],
   cartToken?: string,
+  nonce?: string,
 ) {
   const body: Record<string, unknown> = { id: productId, quantity };
   if (variation) body.variation = variation;
-  return cartFetch(`${STORE_API_URL}/cart/add-item`, body, cartToken);
+  return cartFetch(`${STORE_API_URL}/cart/add-item`, body, cartToken, nonce);
 }
 
 export async function updateCartItemOnServer(
   key: string,
   quantity: number,
   cartToken?: string,
+  nonce?: string,
 ) {
   return cartFetch(
     `${STORE_API_URL}/cart/update-item`,
     { key, quantity },
     cartToken,
+    nonce,
   );
 }
 
-export async function removeCartItemOnServer(key: string, cartToken?: string) {
-  return cartFetch(`${STORE_API_URL}/cart/remove-item`, { key }, cartToken);
+export async function removeCartItemOnServer(
+  key: string,
+  cartToken?: string,
+  nonce?: string,
+) {
+  return cartFetch(
+    `${STORE_API_URL}/cart/remove-item`,
+    { key },
+    cartToken,
+    nonce,
+  );
 }
 
 export async function updateCustomerOnServer(
   billingAddress: Record<string, string>,
   shippingAddress: Record<string, string>,
   cartToken?: string,
+  nonce?: string,
 ) {
   return cartFetch(
     `${STORE_API_URL}/cart/update-customer`,
     { billing_address: billingAddress, shipping_address: shippingAddress },
     cartToken,
+    nonce,
   );
 }
 
@@ -483,29 +699,41 @@ export async function selectShippingRateOnServer(
   packageId: number,
   rateId: string,
   cartToken?: string,
+  nonce?: string,
 ) {
   return cartFetch(
     `${STORE_API_URL}/cart/select-shipping-rate`,
     { package_id: packageId, rate_id: rateId },
     cartToken,
+    nonce,
   );
 }
 
 // ─── Coupons (Store API) ────────────────────────────────────────────────────
 
-export async function applyCouponOnServer(code: string, cartToken?: string) {
+export async function applyCouponOnServer(
+  code: string,
+  cartToken?: string,
+  nonce?: string,
+) {
   return cartFetch(
     `${STORE_API_URL}/cart/apply-coupon`,
     { code },
     cartToken,
+    nonce,
   );
 }
 
-export async function removeCouponOnServer(code: string, cartToken?: string) {
+export async function removeCouponOnServer(
+  code: string,
+  cartToken?: string,
+  nonce?: string,
+) {
   return cartFetch(
     `${STORE_API_URL}/cart/remove-coupon`,
     { code },
     cartToken,
+    nonce,
   );
 }
 
@@ -533,15 +761,60 @@ export async function checkoutOnServer(
     payment_data?: { key: string; value: string }[];
   },
   cartToken?: string,
+  nonce?: string,
 ) {
   console.log(
     "[checkoutOnServer] Request body:",
     JSON.stringify(data, null, 2),
   );
-  const res = await cartFetch(`${STORE_API_URL}/checkout`, data, cartToken);
+  const res = await cartFetch(
+    `${STORE_API_URL}/checkout`,
+    data,
+    cartToken,
+    nonce,
+  );
   if (!res.ok) {
     const body = await res.clone().text();
     console.error("[checkoutOnServer] WooCommerce response", res.status, body);
   }
   return res;
 }
+
+export async function createWooOrderOnServer(orderData: {
+  payment_method?: string;
+  payment_method_title?: string;
+  set_paid?: boolean;
+  status?: string;
+  billing?: Record<string, string>;
+  shipping?: Record<string, string>;
+  line_items?: Array<{
+    product_id?: number;
+    variation_id?: number;
+    quantity: number;
+    name?: string;
+  }>;
+  shipping_lines?: Array<{
+    method_id: string;
+    method_title: string;
+    total: string;
+  }>;
+  coupon_lines?: Array<{
+    code: string;
+  }>;
+}) {
+  console.log(
+    "[createWooOrderOnServer] Creating WC order via REST API v3:",
+    JSON.stringify(orderData, null, 2),
+  );
+  const res = await restApiFetch("/orders", {
+    method: "POST",
+    body: JSON.stringify(orderData),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.clone().text();
+    console.error("[createWooOrderOnServer] WooCommerce REST API response:", res.status, body);
+  }
+  return res;
+}
+

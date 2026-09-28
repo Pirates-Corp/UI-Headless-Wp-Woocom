@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { isCountryAllowed } from "@/lib/config/countries";
 
 // ── Address schemas (shared by checkout form and cart actions) ────────────────
+
+export const PostcodeRegex = /^\d{6}$/;
 
 export const BillingSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -10,8 +13,16 @@ export const BillingSchema = z.object({
   address_2: z.string().default(""),
   city: z.string().min(1, "City is required"),
   state: z.string().default(""),
-  postcode: z.string().min(1, "Postcode is required"),
-  country: z.string().min(2, "Country is required"),
+  postcode: z
+    .string()
+    .min(1, "Postcode is required")
+    .regex(PostcodeRegex, "Postcode must be exactly 6 digits"),
+  country: z
+    .string()
+    .min(2, "Country is required")
+    .refine((val) => isCountryAllowed(val), {
+      message: "Selected country is not allowed for checkout",
+    }),
   email: z.email("Please enter a valid email address"),
   phone: z.string().default(""),
 });
@@ -24,8 +35,18 @@ export const ShippingSchema = z.object({
   address_2: z.string().default(""),
   city: z.string().default(""),
   state: z.string().default(""),
-  postcode: z.string().default(""),
-  country: z.string().default(""),
+  postcode: z
+    .string()
+    .refine((val) => !val || PostcodeRegex.test(val), {
+      message: "Postcode must be exactly 6 digits",
+    })
+    .default(""),
+  country: z
+    .string()
+    .refine((val) => !val || isCountryAllowed(val), {
+      message: "Selected country is not allowed for checkout",
+    })
+    .default(""),
 });
 
 /**
@@ -43,6 +64,7 @@ export const AddToCartSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().min(1, "Quantity must be at least 1").max(999),
   cartToken: z.string().max(512).optional(),
+  nonce: z.string().max(512).optional(),
   variation: z
     .array(z.object({ attribute: z.string().max(200), value: z.string().max(200) }))
     .optional(),
@@ -52,17 +74,20 @@ export const UpdateCartItemSchema = z.object({
   key: z.string().min(1).max(200),
   quantity: z.number().int().min(0).max(999),
   cartToken: z.string().max(512).optional(),
+  nonce: z.string().max(512).optional(),
 });
 
 export const RemoveCartItemSchema = z.object({
   key: z.string().min(1).max(200),
   cartToken: z.string().max(512).optional(),
+  nonce: z.string().max(512).optional(),
 });
 
 export const SelectShippingRateSchema = z.object({
   packageId: z.number().int().min(0),
   rateId: z.string().min(1).max(200),
   cartToken: z.string().max(512).optional(),
+  nonce: z.string().max(512).optional(),
 });
 
 export const ApplyCouponSchema = z.object({
@@ -73,6 +98,7 @@ export const ApplyCouponSchema = z.object({
     .max(50, "Coupon code is too long")
     .regex(/^[a-zA-Z0-9_-]+$/, "Invalid coupon code format"),
   cartToken: z.string().max(512).optional(),
+  nonce: z.string().max(512).optional(),
 });
 
 export const RemoveCouponSchema = z.object({
@@ -82,6 +108,7 @@ export const RemoveCouponSchema = z.object({
     .min(1, "Coupon code is required")
     .max(50, "Coupon code is too long"),
   cartToken: z.string().max(512).optional(),
+  nonce: z.string().max(512).optional(),
 });
 
 /** Combined client-side checkout form schema — used by React Hook Form. */
@@ -90,7 +117,7 @@ export const CheckoutFormSchema = z.object({
   shipping: ShippingSchema,
 });
 
-type CheckoutFormValues = z.infer<typeof CheckoutFormSchema>;
+export type CheckoutFormValues = z.infer<typeof CheckoutFormSchema>;
 
 // ── Shop page URL params ──────────────────────────────────────────────────────
 
@@ -142,6 +169,7 @@ export const OrderConfirmationParamsSchema = z.object({
     .optional()
     .catch(undefined),
   billing_email: z.email().optional().catch(undefined),
+  buy_now: z.enum(["1", "true"]).optional().catch(undefined),
 });
 
 // ── Razorpay payment verification ────────────────────────────────────────────
