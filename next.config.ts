@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+  allowedDevOrigins: ["192.168.56.1", "localhost:3000", "127.0.0.1:3000"],
   images: {
     remotePatterns: [
       {
