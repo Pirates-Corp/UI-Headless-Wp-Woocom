@@ -85,7 +85,7 @@ export interface WooImage {
   alt: string;
 }
 
-interface WooCategory {
+export interface WooCategory {
   id: number;
   name: string;
   slug: string;

@@ -3,6 +3,7 @@ import type {
   WooStoreOrder,
   WooV3Product,
   WooV3Variation,
+  WooCategory,
   CurrencySettings,
   WooCountry,
   WooState,
@@ -514,6 +515,65 @@ function normalizeV3Variation(
   };
 }
 
+// ─── Categories (REST API v3) ───────────────────────────────────────────────
+
+export async function getCategories(params?: {
+  per_page?: number;
+  page?: number;
+  hide_empty?: boolean;
+  search?: string;
+  parent?: number;
+}): Promise<WooCategory[]> {
+  const searchParams: Record<string, string> = {
+    per_page: String(params?.per_page ?? 100),
+    hide_empty: params?.hide_empty !== false ? "true" : "false",
+  };
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.search) searchParams.search = params.search;
+  if (params?.parent !== undefined) searchParams.parent = String(params.parent);
+
+  try {
+    const raw = await restApiFetchJson<WooCategory[]>(
+      "/products/categories",
+      { next: { revalidate: 3600 } },
+      searchParams,
+    );
+    return raw;
+  } catch (err) {
+    console.error("[getCategories] Failed to fetch categories:", err);
+    return [];
+  }
+}
+
+export async function getCategoryBySlug(slug: string): Promise<WooCategory | null> {
+  if (!slug) return null;
+  try {
+    const raw = await restApiFetchJson<WooCategory[]>(
+      "/products/categories",
+      { next: { revalidate: 3600 } },
+      { slug },
+    );
+    return raw[0] ?? null;
+  } catch (err) {
+    console.error(`[getCategoryBySlug] Failed to fetch category for slug "${slug}":`, err);
+    return null;
+  }
+}
+
+export async function getCategory(idOrSlug: string | number): Promise<WooCategory | null> {
+  if (typeof idOrSlug === "number" || /^\d+$/.test(String(idOrSlug))) {
+    try {
+      return await restApiFetchJson<WooCategory>(
+        `/products/categories/${idOrSlug}`,
+        { next: { revalidate: 3600 } },
+      );
+    } catch {
+      return null;
+    }
+  }
+  return getCategoryBySlug(String(idOrSlug));
+}
+
 // ─── Products (REST API v3) ─────────────────────────────────────────────────
 
 export async function getProducts(params?: {
@@ -533,7 +593,15 @@ export async function getProducts(params?: {
   if (params?.per_page) searchParams.per_page = String(params.per_page);
   if (params?.page) searchParams.page = String(params.page);
   if (params?.search) searchParams.search = params.search;
-  if (params?.category) searchParams.category = params.category;
+  if (params?.category) {
+    if (/^\d+$/.test(params.category)) {
+      searchParams.category = params.category;
+    } else {
+      const cat = await getCategoryBySlug(params.category);
+      if (!cat) return [];
+      searchParams.category = String(cat.id);
+    }
+  }
   if (params?.orderby) searchParams.orderby = params.orderby;
   if (params?.order) searchParams.order = params.order;
   if (params?.on_sale) searchParams.on_sale = "true";
@@ -562,7 +630,15 @@ export async function getProductsMeta(
   if (params?.per_page) searchParams.per_page = String(params.per_page);
   if (params?.page) searchParams.page = String(params.page);
   if (params?.search) searchParams.search = params.search;
-  if (params?.category) searchParams.category = params.category;
+  if (params?.category) {
+    if (/^\d+$/.test(params.category)) {
+      searchParams.category = params.category;
+    } else {
+      const cat = await getCategoryBySlug(params.category);
+      if (!cat) return { products: [], totalPages: 1 };
+      searchParams.category = String(cat.id);
+    }
+  }
   if (params?.orderby) searchParams.orderby = params.orderby;
   if (params?.order) searchParams.order = params.order;
   if (params?.on_sale) searchParams.on_sale = "true";

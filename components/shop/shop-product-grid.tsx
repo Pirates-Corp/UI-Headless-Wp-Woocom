@@ -28,12 +28,23 @@ async function ProductList({ searchParams }: ShopProductGridProps) {
   });
 
   if (products.length === 0) {
+    const hasFilter = Boolean(
+      searchParams.category ||
+        searchParams.on_sale === "true" ||
+        searchParams.page
+    );
+
     return (
-      <div className="col-span-full text-center py-24">
-        <p className="text-muted-foreground">{t('shop.noProducts')}</p>
-        <Link href="/shop" className={cn(buttonVariants({ variant: "outline" }), "mt-4")}>
-          {t('shop.clearOnSale')}
-        </Link>
+      <div className="col-span-full text-center py-24 border border-dashed border-border/60 rounded-xl my-6">
+        <p className="text-base text-muted-foreground">{t("shop.noProducts")}</p>
+        {hasFilter && (
+          <Link
+            href="/shop"
+            className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
+          >
+            {t("shop.clearFilters")}
+          </Link>
+        )}
       </div>
     );
   }

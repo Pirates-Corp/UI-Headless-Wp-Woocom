@@ -4,25 +4,11 @@ import { ShopSortBar } from "@/components/shop/shop-sort-bar";
 import { ShopProductGrid } from "@/components/shop/shop-product-grid";
 import { ShopPagination } from "@/components/shop/shop-pagination";
 import { ShopParamsSchema } from "@/lib/validation/schemas";
-import { getProductsMeta } from "@/lib/woocommerce/api";
+import { getProductsMeta, getCategories, getCategoryBySlug } from "@/lib/woocommerce/api";
 import { productToEcommerceItem } from "@/lib/utils/gtm-items";
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { FireGTMEvent } from "@/components/analytics/fire-gtm-event";
 import { t } from "@/lib/i18n";
-
-export const metadata: Metadata = {
-  title: t('shop.title'),
-  description: t('shop.description'),
-  openGraph: {
-    title: t('shop.title'),
-    description: t('shop.description'),
-    type: "website",
-    url: "/shop",
-  },
-};
-
-// No revalidate — searchParams access forces dynamic (SSR) rendering on every request.
-export const dynamic = "force-dynamic";
 
 interface ShopPageProps {
   searchParams: Promise<{
@@ -34,6 +20,38 @@ interface ShopPageProps {
   }>;
 }
 
+export async function generateMetadata({ searchParams }: ShopPageProps): Promise<Metadata> {
+  const params = ShopParamsSchema.parse(await searchParams);
+  let title = t("shop.title");
+  let description = t("shop.description");
+
+  if (params.category) {
+    const cat = await getCategoryBySlug(params.category);
+    if (cat) {
+      title = `${cat.name} | ${t("brand.name")}`;
+      if (cat.description) {
+        description = cat.description.replace(/<[^>]*>?/gm, "");
+      }
+    }
+  } else if (params.on_sale === "true") {
+    title = `${t("shop.onSale")} | ${t("brand.name")}`;
+  }
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: "/shop",
+    },
+  };
+}
+
+// No revalidate — searchParams access forces dynamic (SSR) rendering on every request.
+export const dynamic = "force-dynamic";
+
 export default async function ShopPage({ searchParams }: ShopPageProps) {
   // Validate and sanitise URL params — invalid values fall back to undefined
   // so child components apply their own safe defaults.
@@ -43,16 +61,28 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const activeOrder = params.order ?? "desc";
   const onSale = params.on_sale === "true";
 
-  const { products, totalPages } = await getProductsMeta({
-    per_page: 12,
-    page: currentPage,
-    orderby: activeOrderby,
-    order: activeOrder as "asc" | "desc",
-    on_sale: onSale || undefined,
-    category: params.category,
-  });
+  const [productsMeta, categories, activeCategory] = await Promise.all([
+    getProductsMeta({
+      per_page: 12,
+      page: currentPage,
+      orderby: activeOrderby,
+      order: activeOrder as "asc" | "desc",
+      on_sale: onSale || undefined,
+      category: params.category,
+    }),
+    getCategories({ hide_empty: true }).catch(() => []),
+    params.category ? getCategoryBySlug(params.category).catch(() => null) : Promise.resolve(null),
+  ]);
 
-  const listName = onSale ? "On Sale" : params.category ? `Category: ${params.category}` : "Shop";
+  const { products, totalPages } = productsMeta;
+
+  const listName = onSale
+    ? "On Sale"
+    : activeCategory
+    ? `Category: ${activeCategory.name}`
+    : params.category
+    ? `Category: ${params.category}`
+    : "Shop";
 
   const itemListJsonLd = {
     "@context": "https://schema.org",
@@ -82,12 +112,14 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         ecommerce
       />
       <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
-        <ShopHeader onSale={onSale} />
+        <ShopHeader onSale={onSale} category={activeCategory} />
         <ShopSortBar
           searchParams={params}
           activeOrderby={activeOrderby}
           activeOrder={activeOrder}
           onSale={onSale}
+          categories={categories}
+          activeCategory={params.category}
         />
         <ShopProductGrid searchParams={params} />
         <ShopPagination currentPage={currentPage} totalPages={totalPages} searchParams={params} />
