@@ -31,7 +31,7 @@ export async function RelatedProducts({ categorySlug, currentId }: RelatedProduc
           <h2 className="text-2xl font-heading font-bold">{t('relatedProducts.title')}</h2>
         </div>
         <Link
-          href={`/shop?category=${categorySlug}`}
+          href={`/category/${categorySlug}`}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "text-muted-foreground gap-1.5"

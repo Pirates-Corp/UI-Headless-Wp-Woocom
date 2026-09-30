@@ -25,7 +25,7 @@ export function ProductBreadcrumb({ categories, productName }: ProductBreadcrumb
       {categories[0] && (
         <>
           <Link
-            href={`/shop?category=${categories[0].slug}`}
+            href={`/category/${categories[0].slug}`}
             className="hover:text-foreground transition-colors"
           >
             {categories[0].name}

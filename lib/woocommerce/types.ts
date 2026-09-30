@@ -65,6 +65,7 @@ export interface WooV3Product {
   rating_count: number;
   featured: boolean;
   categories: { id: number; name: string; slug: string }[];
+  brands?: { id: number; name: string; slug: string }[];
   tags: { id: number; name: string; slug: string }[];
   images: WooV3ProductImage[];
   attributes: WooV3ProductAttribute[];
@@ -93,6 +94,23 @@ export interface WooCategory {
   parent: number;
   count: number;
   image: WooImage | null;
+}
+
+export interface WooTag {
+  id: number;
+  name: string;
+  slug: string;
+  count?: number;
+}
+
+export interface WooBrand {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  parent?: number;
+  count?: number;
+  image?: WooImage | null;
 }
 
 export interface WooProductAttribute {
@@ -150,6 +168,11 @@ export interface WooProduct {
   prices: WooProductPrices;
   images: WooImage[];
   categories: {
+    id: number;
+    name: string;
+    slug: string;
+  }[];
+  brands?: {
     id: number;
     name: string;
     slug: string;

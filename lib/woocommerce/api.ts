@@ -8,6 +8,8 @@ import type {
   WooCountry,
   WooState,
   WooProductReview,
+  WooTag,
+  WooBrand,
 } from "./types";
 
 const WP_URL = `${process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL}://${process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST}`;
@@ -166,6 +168,22 @@ async function restApiFetchJson<T>(
   return res.json() as Promise<T>;
 }
 
+/** Public Store API helper used for customer-facing taxonomy/product queries. */
+async function storeApiFetchJson<T>(
+  endpoint: string,
+  params?: Record<string, string>,
+): Promise<{ data: T; headers: Headers }> {
+  const url = new URL(`${STORE_API_URL}${endpoint}`);
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  }
+
+  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
+  if (!res.ok) {
+    throw new Error(`WooCommerce Store API error ${res.status}`);
+  }
+  return { data: (await res.json()) as T, headers: res.headers };
+}
 // ─── Currency settings (fetched from WC REST API and cached) ─────────────────
 
 let currencyCache: CurrencySettings | null = null;
@@ -489,6 +507,7 @@ function normalizeV3Product(
     prices,
     images,
     categories: raw.categories,
+    brands: raw.brands ?? [],
     tags: raw.tags,
     attributes,
     variations,
@@ -590,6 +609,40 @@ export async function getCategoryBySlug(slug: string): Promise<WooCategory | nul
   }
 }
 
+export async function getProductTags(params?: {
+  hide_empty?: boolean;
+  per_page?: number;
+}): Promise<WooTag[]> {
+  try {
+    return await restApiFetchJson<WooTag[]>(
+      "/products/tags",
+      { next: { revalidate: 3600 } },
+      {
+        hide_empty: params?.hide_empty === false ? "false" : "true",
+        per_page: String(params?.per_page ?? 100),
+      },
+    );
+  } catch (err) {
+    console.error("[getProductTags] Failed to fetch product tags:", err);
+    return [];
+  }
+}
+
+export async function getProductBrands(params?: {
+  hide_empty?: boolean;
+  per_page?: number;
+}): Promise<WooBrand[]> {
+  try {
+    const { data } = await storeApiFetchJson<WooBrand[]>("/products/brands", {
+      hide_empty: params?.hide_empty === false ? "false" : "true",
+      per_page: String(params?.per_page ?? 100),
+    });
+    return data;
+  } catch (err) {
+    console.error("[getProductBrands] Failed to fetch product brands:", err);
+    return [];
+  }
+}
 export async function getCategory(idOrSlug: string | number): Promise<WooCategory | null> {
   if (typeof idOrSlug === "number" || /^\d+$/.test(String(idOrSlug))) {
     try {
@@ -606,17 +659,55 @@ export async function getCategory(idOrSlug: string | number): Promise<WooCategor
 
 // ─── Products (REST API v3) ─────────────────────────────────────────────────
 
+function toStoreApiPrice(value: string | undefined, minorUnit: number): string | undefined {
+  if (value === undefined || value === "") return undefined;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return undefined;
+  return String(Math.round(numeric * 10 ** minorUnit));
+}
+
+async function getStoreProductsMeta(
+  params: Parameters<typeof getProducts>[0],
+): Promise<{ products: WooProduct[]; totalPages: number }> {
+  const currency = await getCurrencySettings();
+  const searchParams: Record<string, string> = {};
+  if (params?.per_page) searchParams.per_page = String(params.per_page);
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.search) searchParams.search = params.search;
+  if (params?.category) searchParams.category = params.category;
+  if (params?.brand) searchParams.brand = params.brand;
+  if (params?.tag) searchParams.tag = params.tag;
+  const minPrice = toStoreApiPrice(params?.min_price, currency.minor_unit);
+  const maxPrice = toStoreApiPrice(params?.max_price, currency.minor_unit);
+  if (minPrice !== undefined) searchParams.min_price = minPrice;
+  if (maxPrice !== undefined) searchParams.max_price = maxPrice;
+  if (params?.orderby) searchParams.orderby = params.orderby;
+  if (params?.order) searchParams.order = params.order;
+  if (params?.on_sale) searchParams.on_sale = "true";
+  if (params?.featured) searchParams.featured = "true";
+  if (params?.include?.length) searchParams.include = params.include.join(",");
+
+  const { data, headers } = await storeApiFetchJson<WooProduct[]>("/products", searchParams);
+  const totalPages = Number.parseInt(headers.get("X-WP-TotalPages") ?? "1", 10);
+  return { products: data, totalPages: Number.isFinite(totalPages) ? totalPages : 1 };
+}
 export async function getProducts(params?: {
   per_page?: number;
   page?: number;
   search?: string;
   category?: string;
+  brand?: string;
+  tag?: string;
+  min_price?: string;
+  max_price?: string;
   orderby?: string;
   order?: string;
   on_sale?: boolean;
   featured?: boolean;
   include?: number[];
 }): Promise<WooProduct[]> {
+  if (params?.brand) return (await getStoreProductsMeta(params)).products;
+
   const currency = await getCurrencySettings();
 
   const searchParams: Record<string, string> = {};
@@ -632,6 +723,9 @@ export async function getProducts(params?: {
       searchParams.category = String(cat.id);
     }
   }
+  if (params?.tag) searchParams.tag = params.tag;
+  if (params?.min_price !== undefined) searchParams.min_price = params.min_price;
+  if (params?.max_price !== undefined) searchParams.max_price = params.max_price;
   if (params?.orderby) searchParams.orderby = params.orderby;
   if (params?.order) searchParams.order = params.order;
   if (params?.on_sale) searchParams.on_sale = "true";
@@ -654,6 +748,8 @@ export async function getProductsMeta(
   products: WooProduct[];
   totalPages: number;
 }> {
+  if (params?.brand) return getStoreProductsMeta(params);
+
   const currency = await getCurrencySettings();
 
   const searchParams: Record<string, string> = {};
@@ -669,6 +765,9 @@ export async function getProductsMeta(
       searchParams.category = String(cat.id);
     }
   }
+  if (params?.tag) searchParams.tag = params.tag;
+  if (params?.min_price !== undefined) searchParams.min_price = params.min_price;
+  if (params?.max_price !== undefined) searchParams.max_price = params.max_price;
   if (params?.orderby) searchParams.orderby = params.orderby;
   if (params?.order) searchParams.order = params.order;
   if (params?.on_sale) searchParams.on_sale = "true";
