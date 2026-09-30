@@ -7,6 +7,18 @@ import { getCurrencySettings, getCurrencySymbol } from "@/lib/woocommerce/api";
 import type { CurrencySettings } from "@/lib/woocommerce/types";
 import { decodeHtml } from "@/lib/utils/format";
 
+export interface CustomerOrderLineItem {
+  id: number;
+  productId: number;
+  variationId?: number;
+  name: string;
+  quantity: number;
+  total: string;
+  price: number;
+  sku?: string;
+  image?: string;
+}
+
 export interface CustomerOrderSummary {
   id: number;
   number: string;
@@ -20,21 +32,22 @@ export interface CustomerOrderSummary {
   currencyMinorUnit: number;
   itemCount: number;
   paymentMethodTitle: string;
-  lineItems: {
-    id: number;
-    name: string;
-    quantity: number;
-    total: string;
-    price: number;
-  }[];
+  lineItems: CustomerOrderLineItem[];
 }
 
 interface RawLineItem {
   id?: number;
+  product_id?: number;
+  variation_id?: number;
   name?: string;
   quantity?: number;
   total?: string;
   price?: number;
+  sku?: string;
+  image?: {
+    id?: number | string;
+    src?: string;
+  };
 }
 
 interface RawOrder {
@@ -204,13 +217,17 @@ function formatOrders(
       return !billingEmail || billingEmail === userEmail.toLowerCase();
     })
     .map((order) => {
-      const lineItems = Array.isArray(order.line_items)
+      const lineItems: CustomerOrderLineItem[] = Array.isArray(order.line_items)
         ? order.line_items.map((item) => ({
             id: item.id || 0,
+            productId: item.product_id || item.id || 0,
+            variationId: item.variation_id || undefined,
             name: item.name || "Item",
             quantity: item.quantity || 1,
             total: item.total || "0",
             price: item.price || 0,
+            sku: item.sku || undefined,
+            image: item.image?.src || undefined,
           }))
         : [];
 

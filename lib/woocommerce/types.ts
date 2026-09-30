@@ -108,25 +108,32 @@ export interface WooProductAttribute {
   }[];
 }
 
+export interface WooProductPrices {
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  currency_code: string;
+  currency_symbol: string;
+  currency_minor_unit: number;
+  currency_decimal_separator: string;
+  currency_thousand_separator: string;
+  currency_prefix: string;
+  currency_suffix: string;
+  price_range?: {
+    min_amount: string;
+    max_amount: string;
+  } | null;
+}
+
 export interface WooProductVariation {
   id: number;
+  sku?: string;
   attributes: {
     name: string;
     value: string;
   }[];
   /** Present only when fetched via ?type=variation; absent in base product response. */
-  prices?: {
-    price: string;
-    regular_price: string;
-    sale_price: string;
-    currency_code: string;
-    currency_symbol: string;
-    currency_minor_unit: number;
-    currency_decimal_separator: string;
-    currency_thousand_separator: string;
-    currency_prefix: string;
-    currency_suffix: string;
-  };
+  prices?: WooProductPrices;
   is_in_stock?: boolean;
   image?: WooImage | null;
 }
@@ -140,22 +147,7 @@ export interface WooProduct {
   short_description: string;
   sku: string;
   permalink: string;
-  prices: {
-    price: string;
-    regular_price: string;
-    sale_price: string;
-    currency_code: string;
-    currency_symbol: string;
-    currency_minor_unit: number;
-    currency_decimal_separator: string;
-    currency_thousand_separator: string;
-    currency_prefix: string;
-    currency_suffix: string;
-    price_range: {
-      min_amount: string;
-      max_amount: string;
-    } | null;
-  };
+  prices: WooProductPrices;
   images: WooImage[];
   categories: {
     id: number;
@@ -441,3 +433,27 @@ export interface WooCountry {
   name: string;
   states: WooState[];
 }
+
+export interface WooProductReview {
+  id: number;
+  date_created: string;
+  date_created_gmt: string;
+  product_id: number;
+  product_name: string;
+  product_permalink: string;
+  status: string;
+  reviewer: string;
+  reviewer_email: string;
+  review: string;
+  rating: number;
+  verified: boolean;
+}
+
+export interface CreateProductReviewInput {
+  productId: number;
+  rating: number;
+  review: string;
+  reviewer: string;
+  reviewerEmail: string;
+}
+

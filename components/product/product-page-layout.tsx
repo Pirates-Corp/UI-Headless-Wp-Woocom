@@ -4,12 +4,13 @@ import { Separator } from "@/components/ui/separator";
 import { ProductBreadcrumb } from "@/components/product/product-breadcrumb";
 import { ProductInfo } from "@/components/product/product-info";
 import { ProductSpecs } from "@/components/product/product-specs";
+import { ProductReviews } from "@/components/product/product-reviews";
 import { RelatedProducts } from "@/components/product/related-products";
 import { stripHtml } from "@/lib/utils/format";
 import { productToEcommerceItem } from "@/lib/utils/gtm-items";
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { FireGTMEvent } from "@/components/analytics/fire-gtm-event";
-import type { WooProduct } from "@/lib/woocommerce/types";
+import type { WooProduct, WooProductReview } from "@/lib/woocommerce/types";
 import { t } from "@/lib/i18n";
 
 export interface ProductPageData {
@@ -17,6 +18,7 @@ export interface ProductPageData {
   initialVariationId?: number;
   initialVariationPrices?: WooProduct["prices"];
   initialVariationInStock?: boolean;
+  reviews?: WooProductReview[];
 }
 
 /** Builds the JSON-LD Product schema for a product page. */
@@ -61,6 +63,7 @@ export function ProductPageLayout({
   initialVariationId,
   initialVariationPrices,
   initialVariationInStock,
+  reviews = [],
 }: ProductPageData) {
   const displayPrices = initialVariationPrices ?? product.prices;
   const isInStock = initialVariationInStock ?? product.is_in_stock;
@@ -102,6 +105,7 @@ export function ProductPageLayout({
             initialVariationId={initialVariationId}
             initialVariationPrices={initialVariationPrices}
             initialVariationInStock={initialVariationInStock}
+            reviews={reviews}
           />
         </div>
 
@@ -117,6 +121,15 @@ export function ProductPageLayout({
         )}
 
         <ProductSpecs attributes={product.attributes} />
+
+        {/* Customer Reviews Section */}
+        <ProductReviews
+          productId={product.id}
+          productName={product.name}
+          averageRating={product.average_rating}
+          reviewCount={product.review_count}
+          reviews={reviews}
+        />
 
         {product.categories[0] && (
           <Suspense fallback={null}>

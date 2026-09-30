@@ -7,6 +7,7 @@ import type {
   CurrencySettings,
   WooCountry,
   WooState,
+  WooProductReview,
 } from "./types";
 
 const WP_URL = `${process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL}://${process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST}`;
@@ -379,18 +380,22 @@ export async function getCountriesFromServer(): Promise<WooCountry[]> {
  * Convert a REST API v3 product into the Store-API-compatible WooProduct shape
  * that all UI components expect. Prices are converted to minor units.
  */
-function normalizeV3Product(raw: WooV3Product, currency: CurrencySettings): WooProduct {
-  const toMinorUnits = (price: string): string => {
-    if (!price && price !== "0") return "0";
+function normalizeV3Product(
+  raw: WooV3Product,
+  currency: CurrencySettings,
+  v3Variations?: WooV3Variation[]
+): WooProduct {
+  const toMinorUnits = (price: string, fallback = "0"): string => {
+    if (!price && price !== "0") return fallback;
     const num = parseFloat(price);
-    if (isNaN(num)) return "0";
+    if (isNaN(num)) return fallback;
     return String(Math.round(num * Math.pow(10, currency.minor_unit)));
   };
 
   const prices: WooProduct["prices"] = {
-    price: toMinorUnits(raw.price),
-    regular_price: toMinorUnits(raw.regular_price),
-    sale_price: toMinorUnits(raw.sale_price),
+    price: toMinorUnits(raw.price, "0"),
+    regular_price: toMinorUnits(raw.regular_price, toMinorUnits(raw.price, "0")),
+    sale_price: toMinorUnits(raw.sale_price, ""),
     currency_code: currency.code,
     currency_symbol: currency.symbol,
     currency_minor_unit: currency.minor_unit,
@@ -432,12 +437,37 @@ function normalizeV3Product(raw: WooV3Product, currency: CurrencySettings): WooP
     })),
   }));
 
-  // Build variations — v3 only gives IDs, so we create stubs.
-  // Full variation data is fetched separately via getVariationData().
-  const variations = raw.variations.map((varId) => ({
-    id: varId,
-    attributes: [],
-  }));
+  // Build variations — map full variation attributes, prices, stock, and image if provided;
+  // otherwise fallback to ID stubs.
+  const variations: WooProductVariation[] =
+    v3Variations && v3Variations.length > 0
+      ? v3Variations.map((v) => {
+          const normalizedVar = normalizeV3Variation(v, currency);
+          return {
+            id: v.id,
+            attributes: v.attributes.map((va) => ({
+              name: va.name,
+              value: va.option,
+            })),
+            prices: normalizedVar.prices,
+            is_in_stock: normalizedVar.is_in_stock,
+            image: v.image
+              ? {
+                  id: v.image.id,
+                  src: v.image.src,
+                  thumbnail: v.image.src,
+                  srcset: "",
+                  sizes: "",
+                  name: v.image.name,
+                  alt: v.image.alt,
+                }
+              : null,
+          };
+        })
+      : raw.variations.map((varId) => ({
+          id: varId,
+          attributes: [],
+        }));
 
   // Compute low_stock_remaining
   const lowStockRemaining =
@@ -490,18 +520,18 @@ function normalizeV3Variation(
   raw: WooV3Variation,
   currency: CurrencySettings,
 ): { prices: WooProduct["prices"]; is_in_stock: boolean } {
-  const toMinorUnits = (price: string): string => {
-    if (!price && price !== "0") return "0";
+  const toMinorUnits = (price: string, fallback = "0"): string => {
+    if (!price && price !== "0") return fallback;
     const num = parseFloat(price);
-    if (isNaN(num)) return "0";
+    if (isNaN(num)) return fallback;
     return String(Math.round(num * Math.pow(10, currency.minor_unit)));
   };
 
   return {
     prices: {
-      price: toMinorUnits(raw.price),
-      regular_price: toMinorUnits(raw.regular_price),
-      sale_price: toMinorUnits(raw.sale_price),
+      price: toMinorUnits(raw.price, "0"),
+      regular_price: toMinorUnits(raw.regular_price, toMinorUnits(raw.price, "0")),
+      sale_price: toMinorUnits(raw.sale_price, ""),
       currency_code: currency.code,
       currency_symbol: currency.symbol,
       currency_minor_unit: currency.minor_unit,
@@ -662,19 +692,41 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
   const currency = await getCurrencySettings();
 
   // Try to find by slug first
-  const raw = await restApiFetchJson<WooV3Product[]>(
+  let raw: WooV3Product | null = null;
+  const bySlug = await restApiFetchJson<WooV3Product[]>(
     "/products",
     { next: { revalidate: 3600 } },
     { slug: idOrSlug },
   );
-  if (raw.length > 0) return normalizeV3Product(raw[0], currency);
+  if (bySlug.length > 0) {
+    raw = bySlug[0];
+  } else {
+    // Fallback: try as numeric ID
+    raw = await restApiFetchJson<WooV3Product>(
+      `/products/${idOrSlug}`,
+      { next: { revalidate: 3600 } },
+    );
+  }
 
-  // Fallback: try as numeric ID
-  const product = await restApiFetchJson<WooV3Product>(
-    `/products/${idOrSlug}`,
-    { next: { revalidate: 3600 } },
-  );
-  return normalizeV3Product(product, currency);
+  if (!raw) {
+    throw new Error(`Product not found: ${idOrSlug}`);
+  }
+
+  // If variable product, fetch all variation details in parallel
+  let fullVariations: WooV3Variation[] = [];
+  if (raw.type === "variable" && raw.variations && raw.variations.length > 0) {
+    try {
+      fullVariations = await restApiFetchJson<WooV3Variation[]>(
+        `/products/${raw.id}/variations`,
+        { next: { revalidate: 3600 } },
+        { per_page: "100" },
+      );
+    } catch (err) {
+      console.warn(`[getProduct] Failed to fetch variations for product ${raw.id}:`, err);
+    }
+  }
+
+  return normalizeV3Product(raw, currency, fullVariations);
 }
 
 /**
@@ -893,4 +945,113 @@ export async function createWooOrderOnServer(orderData: {
   }
   return res;
 }
+
+// ─── Product Reviews (REST API v3) ──────────────────────────────────────────
+
+/**
+ * Fetch reviews for a specific product or submitted by a specific reviewer email.
+ */
+export async function getProductReviewsFromServer(params?: {
+  productId?: number;
+  reviewerEmail?: string;
+  perPage?: number;
+  page?: number;
+}): Promise<WooProductReview[]> {
+  try {
+    const searchParams: Record<string, string> = {};
+    if (params?.productId) searchParams.product = String(params.productId);
+    if (params?.reviewerEmail) searchParams.reviewer_email = params.reviewerEmail;
+    if (params?.perPage) searchParams.per_page = String(params.perPage);
+    if (params?.page) searchParams.page = String(params.page);
+
+    const reviews = await restApiFetchJson<WooProductReview[]>(
+      "/products/reviews",
+      { cache: "no-store" },
+      searchParams
+    );
+
+    return Array.isArray(reviews) ? reviews : [];
+  } catch (err) {
+    console.warn("[getProductReviewsFromServer] Failed to fetch reviews:", err);
+    return [];
+  }
+}
+
+/**
+ * Create a new product review via WooCommerce REST API v3.
+ */
+export async function createProductReviewOnServer(data: {
+  product_id: number;
+  review: string;
+  reviewer: string;
+  reviewer_email: string;
+  rating: number;
+  verified?: boolean;
+  status?: string;
+}): Promise<WooProductReview> {
+  const res = await restApiFetch("/products/reviews", {
+    method: "POST",
+    body: JSON.stringify({
+      product_id: data.product_id,
+      review: data.review,
+      reviewer: data.reviewer,
+      reviewer_email: data.reviewer_email,
+      rating: data.rating,
+      verified: data.verified ?? true,
+      status: data.status ?? "approved",
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    let errorMsg = `Failed to submit review (${res.status})`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      if (parsed.message) errorMsg = parsed.message;
+    } catch {
+      // keep fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json() as Promise<WooProductReview>;
+}
+
+/**
+ * Update an existing product review via WooCommerce REST API v3.
+ */
+export async function updateProductReviewOnServer(
+  reviewId: number,
+  data: {
+    review?: string;
+    rating?: number;
+  }
+): Promise<WooProductReview> {
+  const body: Record<string, unknown> = {};
+  if (data.review !== undefined) body.review = data.review;
+  if (data.rating !== undefined) body.rating = data.rating;
+
+  const res = await restApiFetch(`/products/reviews/${reviewId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    let errorMsg = `Failed to update review (${res.status})`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      if (parsed.message) errorMsg = parsed.message;
+    } catch {
+      // keep fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json() as Promise<WooProductReview>;
+}
+
+
 

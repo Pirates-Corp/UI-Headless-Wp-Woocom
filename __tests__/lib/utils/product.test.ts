@@ -1,4 +1,10 @@
-import { sortTerms, resolveTermSlug, findMatchedVariation, buildSelectionFromVariation } from "@/lib/utils/product";
+import {
+  sortTerms,
+  resolveTermSlug,
+  findMatchedVariation,
+  buildSelectionFromVariation,
+  resolveNextSelection,
+} from "@/lib/utils/product";
 import type { WooProduct, WooProductAttribute } from "@/lib/woocommerce/types";
 import { makeProduct } from "../../fixtures";
 
@@ -6,7 +12,7 @@ import { makeProduct } from "../../fixtures";
 
 const makeAttr = (
   name: string,
-  terms: { id: number; name: string; slug: string; default: boolean }[]
+  terms: { id: number; name: string; slug: string; default: boolean }[],
 ): WooProductAttribute => ({
   id: 1,
   name,
@@ -19,11 +25,9 @@ const makeAttr = (
 describe("sortTerms", () => {
   it("sorts by parseFloat value (leading numbers are numeric)", () => {
     // parseFloat("50ml") === 50, so "50ml" IS treated as numeric by the sort.
-    const terms = [
-      { name: "50ml" },
-      { name: "100" },
-      { name: "30" },
-    ] as { name: string }[];
+    const terms = [{ name: "50ml" }, { name: "100" }, { name: "30" }] as {
+      name: string;
+    }[];
 
     const sorted = sortTerms(terms);
     // All three have a leading numeric value: 30 < 50 < 100
@@ -130,7 +134,118 @@ describe("buildSelectionFromVariation", () => {
   });
 
   it("builds a slug-keyed selection map from a variation", () => {
-    const selection = buildSelectionFromVariation(product, product.variations[0]);
+    const selection = buildSelectionFromVariation(
+      product,
+      product.variations[0],
+    );
     expect(selection).toEqual({ Size: "small", Colour: "black" });
+  });
+});
+
+// ── Multi-attribute matching & resolveNextSelection (WooCommerce 3-Attribute) ──
+describe("Multi-attribute Variations (Size, Color, Weight)", () => {
+  const multiAttrProduct = makeProduct({
+    id: 40,
+    type: "variable",
+    attributes: [
+      makeAttr("Size", [
+        { id: 1, name: "Small", slug: "small", default: false },
+        { id: 2, name: "Large", slug: "large", default: false },
+      ]),
+      makeAttr("Color", [
+        { id: 3, name: "Blue", slug: "blue", default: false },
+        { id: 4, name: "Red", slug: "red", default: false },
+      ]),
+      makeAttr("Weight", [
+        { id: 5, name: "200g", slug: "200g", default: false },
+        { id: 6, name: "300g", slug: "300g", default: false },
+        { id: 7, name: "700g", slug: "700g", default: false },
+      ]),
+    ],
+    variations: [
+      {
+        id: 167,
+        attributes: [
+          { name: "pa_size", value: "Small" },
+          { name: "pa_color", value: "Blue" },
+          { name: "pa_weight", value: "200g" },
+        ],
+      },
+      {
+        id: 168,
+        attributes: [
+          { name: "pa_size", value: "Small" },
+          { name: "pa_color", value: "Red" },
+          { name: "pa_weight", value: "200g" },
+        ],
+      },
+      {
+        id: 164,
+        attributes: [
+          { name: "pa_size", value: "Small" },
+          { name: "pa_color", value: "Blue" },
+          { name: "pa_weight", value: "300g" },
+        ],
+      },
+      {
+        id: 166,
+        attributes: [
+          { name: "pa_size", value: "Large" },
+          { name: "pa_color", value: "Red" },
+          { name: "pa_weight", value: "700g" },
+        ],
+      },
+    ],
+  });
+
+  it("correctly matches variation #166 (Large / Red / 700g) with pa_ attribute names", () => {
+    const matched = findMatchedVariation(multiAttrProduct, {
+      Size: "large",
+      Color: "red",
+      Weight: "700g",
+    });
+    expect(matched?.id).toBe(166);
+  });
+
+  it("correctly matches variation #168 (Small / Red / 200g)", () => {
+    const matched = findMatchedVariation(multiAttrProduct, {
+      Size: "small",
+      Color: "red",
+      Weight: "200g",
+    });
+    expect(matched?.id).toBe(168);
+  });
+
+  it("returns undefined for an invalid combination (Large / Blue / 200g)", () => {
+    const matched = findMatchedVariation(multiAttrProduct, {
+      Size: "large",
+      Color: "blue",
+      Weight: "200g",
+    });
+    expect(matched).toBeUndefined();
+  });
+
+  it("resolveNextSelection auto-switches to valid variation when user selects Large from Small/Blue/200g", () => {
+    const current = { Size: "small", Color: "blue", Weight: "200g" };
+    const next = resolveNextSelection(
+      multiAttrProduct,
+      current,
+      "Size",
+      "large",
+    );
+    // Large only exists as Large / Red / 700g (#166)
+    expect(next).toEqual({ Size: "large", Color: "red", Weight: "700g" });
+  });
+
+  it("resolveNextSelection preserves valid combination when changing Color on Small", () => {
+    const current = { Size: "small", Color: "blue", Weight: "200g" };
+    const next = resolveNextSelection(
+      multiAttrProduct,
+      current,
+      "Color",
+      "red",
+    );
+    // Small / Red / 200g is valid (#168)
+    expect(next).toEqual({ Size: "small", Color: "red", Weight: "200g" });
   });
 });

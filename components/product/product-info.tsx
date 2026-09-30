@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AddToCartForm } from "@/components/add-to-cart-form";
 import { StarRating } from "@/components/product/star-rating";
 import { formatProductPrice, decodeHtml } from "@/lib/utils/format";
-import { findMatchedVariation, buildSelectionFromVariation } from "@/lib/utils/product";
-import type { WooProduct } from "@/lib/woocommerce/types";
+import {
+  findMatchedVariation,
+  buildSelectionFromVariation,
+  resolveNextSelection,
+} from "@/lib/utils/product";
+import type { WooProduct, WooProductReview } from "@/lib/woocommerce/types";
 import { Truck, RotateCcw, ShieldCheck, Award } from "lucide-react";
 import { t } from "@/lib/i18n";
 
@@ -17,11 +21,29 @@ interface ProductInfoProps {
   initialVariationId?: number;
   initialVariationPrices?: WooProduct["prices"];
   initialVariationInStock?: boolean;
+  reviews?: WooProductReview[];
 }
 
-
-export function ProductInfo({ product, initialVariationId, initialVariationPrices, initialVariationInStock }: ProductInfoProps) {
+export function ProductInfo({
+  product,
+  initialVariationId,
+  initialVariationPrices,
+  initialVariationInStock,
+  reviews = [],
+}: ProductInfoProps) {
   const router = useRouter();
+
+  const effectiveRating = useMemo(() => {
+    if (reviews && reviews.length > 0) {
+      const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+      return (sum / reviews.length).toFixed(1);
+    }
+    return product.average_rating || "0";
+  }, [reviews, product.average_rating]);
+
+  const effectiveCount = reviews && reviews.length > 0
+    ? reviews.length
+    : product.review_count || 0;
 
   const [selectedVariation, setSelectedVariation] = useState<Record<string, string>>(() => {
     if (product.type !== "variable") return {};
@@ -36,8 +58,17 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
     return first ? buildSelectionFromVariation(product, first) : {};
   });
 
+  // Resolve the currently matched variation to derive prices, stock, and ID in real-time
+  const matchedVariation = useMemo(() => {
+    return product.type === "variable"
+      ? findMatchedVariation(product, selectedVariation)
+      : undefined;
+  }, [product, selectedVariation]);
+
+  const activeVariationId = matchedVariation?.id ?? initialVariationId;
+
   function handleVariationChange(attrName: string, termSlug: string) {
-    const next = { ...selectedVariation, [attrName]: termSlug };
+    const next = resolveNextSelection(product, selectedVariation, attrName, termSlug);
     setSelectedVariation(next);
     const matched = findMatchedVariation(product, next);
     if (matched) {
@@ -45,15 +76,11 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
     }
   }
 
-  const displayPrices = initialVariationPrices ?? product.prices;
+  // Priority: matched variation prices → server initialVariationPrices → parent product prices
+  const displayPrices = matchedVariation?.prices ?? initialVariationPrices ?? product.prices;
   const { current, regular, onSale } = formatProductPrice(displayPrices);
 
-  // Resolve the currently matched variation to derive per-variation stock status.
-  const matchedVariation = product.type === "variable"
-    ? findMatchedVariation(product, selectedVariation)
-    : undefined;
-
-  // Stock priority: matched variation (parent array) → server-fetched initialVariationInStock → parent product.
+  // Stock priority: matched variation → server-fetched initialVariationInStock → parent product
   const variationInStock =
     product.type === "variable"
       ? (matchedVariation?.is_in_stock ?? initialVariationInStock ?? product.is_in_stock)
@@ -63,7 +90,7 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
   const priceAmt = parseInt(displayPrices.price) / divisor;
   const regularAmt = parseInt(displayPrices.regular_price || displayPrices.price) / divisor;
   const savingsPct =
-    onSale && regularAmt > 0 ? Math.round((1 - priceAmt / regularAmt) * 100) : 0;
+    onSale && regularAmt > priceAmt ? Math.round((1 - priceAmt / regularAmt) * 100) : 0;
 
   return (
     <div className="space-y-5">
@@ -77,7 +104,7 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
         <h1 className="text-3xl md:text-4xl font-heading font-bold leading-tight mb-3">
           {decodeHtml(product.name)}
         </h1>
-        <StarRating rating={product.average_rating} count={product.review_count} />
+        <StarRating rating={effectiveRating} count={effectiveCount} />
       </div>
 
       {/* Price */}
@@ -85,7 +112,7 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
         <span className="text-2xl font-bold">
           {current}
         </span>
-        {onSale && (
+        {onSale && savingsPct > 0 && (
           <>
             <span className="text-base text-muted-foreground line-through">{regular}</span>
             <Badge className="bg-[var(--gold)] text-white border-0 hover:bg-[var(--gold)] text-[10px] tracking-wider uppercase">
@@ -146,7 +173,7 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
 
       <AddToCartForm
         product={product}
-        variationId={initialVariationId}
+        variationId={activeVariationId}
         selectedVariation={selectedVariation}
         onVariationChange={handleVariationChange}
         variationInStock={variationInStock}
@@ -172,8 +199,8 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
 
       {/* Meta */}
       <div className="space-y-1.5 pt-1">
-        {product.sku && (
-          <p className="text-xs text-muted-foreground">{t('product.sku')} {product.sku}</p>
+        {(matchedVariation?.sku || product.sku) && (
+          <p className="text-xs text-muted-foreground">{t('product.sku')} {matchedVariation?.sku || product.sku}</p>
         )}
         {product.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">

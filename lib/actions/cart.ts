@@ -24,8 +24,7 @@ import {
   RemoveCouponSchema,
 } from "@/lib/validation/schemas";
 import { getAllowedCountries } from "@/lib/config/countries";
-import type { WooCart, WooCheckoutOrder, BillingAddress, ShippingAddress, WooCountry } from "@/lib/woocommerce/types";
-import { decodeHtml } from "@/lib/utils/format";
+import { decodeHtml, formatCartError } from "@/lib/utils/format";
 
 export async function getCart(cartToken?: string): Promise<{
   cart: WooCart | null;
@@ -65,7 +64,7 @@ export async function addToCart(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: resToken, nonce: resNonce, error: body };
+      return { cart: null, cartToken: resToken, nonce: resNonce, error: formatCartError(body, "Could not add item to cart.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: resToken, nonce: resNonce };
@@ -90,7 +89,7 @@ export async function updateCartItem(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: token, nonce: resNonce, error: body };
+      return { cart: null, cartToken: token, nonce: resNonce, error: formatCartError(body, "Could not update cart item.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: token, nonce: resNonce };
@@ -114,7 +113,7 @@ export async function removeFromCart(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: token, nonce: resNonce, error: body };
+      return { cart: null, cartToken: token, nonce: resNonce, error: formatCartError(body, "Could not remove item from cart.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: token, nonce: resNonce };
@@ -147,7 +146,7 @@ export async function checkout(
     if (!res.ok) {
       const body = await res.text();
       console.error("[checkout] WooCommerce checkout API error:", res.status, body);
-      return { order: null, cartToken: resToken, nonce: resNonce, error: body };
+      return { order: null, cartToken: resToken, nonce: resNonce, error: formatCartError(body, "Checkout failed. Please check your information and try again.") };
     }
     const order = (await res.json()) as WooCheckoutOrder;
     return { order, cartToken: resToken, nonce: resNonce };
@@ -174,7 +173,7 @@ export async function updateCustomer(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: token, nonce: resNonce, error: body };
+      return { cart: null, cartToken: token, nonce: resNonce, error: formatCartError(body, "Could not update address.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: token, nonce: resNonce };
@@ -199,24 +198,13 @@ export async function selectShippingRate(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: token, nonce: resNonce, error: body };
+      return { cart: null, cartToken: token, nonce: resNonce, error: formatCartError(body, "Could not select shipping method.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: token, nonce: resNonce };
   } catch (e) {
     return { cart: null, cartToken: null, nonce: null, error: (e as Error).message };
   }
-}
-
-// ── Coupon actions ──────────────────────────────────────────────────────────
-
-/** Extract a human-readable error message from a WooCommerce REST/Store API error body. */
-function extractCouponErrorMessage(raw: string): string {
-  try {
-    const parsed = JSON.parse(raw) as { message?: string; code?: string };
-    if (parsed.message) return decodeHtml(parsed.message);
-  } catch { /* not JSON */ }
-  return "Failed to process coupon. Please try again.";
 }
 
 export async function applyCoupon(
@@ -234,7 +222,7 @@ export async function applyCoupon(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: token, nonce: resNonce, error: extractCouponErrorMessage(body) };
+      return { cart: null, cartToken: token, nonce: resNonce, error: formatCartError(body, "Failed to process coupon.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: token, nonce: resNonce };
@@ -258,7 +246,7 @@ export async function removeCoupon(
     const resNonce = extractNonce(res);
     if (!res.ok) {
       const body = await res.text();
-      return { cart: null, cartToken: token, nonce: resNonce, error: extractCouponErrorMessage(body) };
+      return { cart: null, cartToken: token, nonce: resNonce, error: formatCartError(body, "Failed to remove coupon.") };
     }
     const cart = (await res.json()) as WooCart;
     return { cart, cartToken: token, nonce: resNonce };

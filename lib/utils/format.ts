@@ -30,12 +30,27 @@ export function formatProductPrice(prices: {
     prices.currency_suffix
   );
   const regular = formatPrice(
-    prices.regular_price,
+    prices.regular_price || prices.price,
     prices.currency_minor_unit,
     prices.currency_prefix,
     prices.currency_suffix
   );
-  const onSale = prices.sale_price !== "" && prices.sale_price !== prices.regular_price;
+
+  const priceNum = parseInt(prices.price, 10);
+  const regularNum = parseInt(prices.regular_price, 10);
+  const saleNum = parseInt(prices.sale_price, 10);
+
+  // A product is truly on sale only if regular price is strictly greater than the current price
+  const hasValidRegular = !isNaN(regularNum) && regularNum > 0;
+  const hasValidPrice = !isNaN(priceNum) && priceNum >= 0;
+  const isDiscounted = hasValidRegular && hasValidPrice && regularNum > priceNum;
+
+  const onSale =
+    isDiscounted &&
+    (prices.sale_price !== "" && prices.sale_price !== "0"
+      ? !isNaN(saleNum) && saleNum < regularNum
+      : true);
+
   return { current, regular, onSale };
 }
 
@@ -66,5 +81,22 @@ export function decodeHtml(html: string): string {
       const code = parseInt(hex, 16);
       return !isNaN(code) ? String.fromCharCode(code) : _;
     });
+}
+
+/**
+ * Extract a human-readable error message from a WooCommerce REST/Store API error body.
+ */
+export function formatCartError(raw: string, fallback = "An unexpected error occurred. Please try again."): string {
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw) as { message?: string; code?: string };
+    if (parsed.message) {
+      return decodeHtml(parsed.message.replace(/<[^>]*>/g, "").trim());
+    }
+  } catch {
+    // Not JSON
+  }
+  const cleaned = decodeHtml(raw.replace(/<[^>]*>/g, "").trim());
+  return cleaned || fallback;
 }
 

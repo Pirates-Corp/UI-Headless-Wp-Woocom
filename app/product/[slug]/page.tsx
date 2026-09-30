@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProduct, getProducts, getVariationData } from "@/lib/woocommerce/api";
+import { getProduct, getProducts, getVariationData, getProductReviewsFromServer } from "@/lib/woocommerce/api";
 import type { WooProduct } from "@/lib/woocommerce/types";
 import { sortTerms } from "@/lib/utils/product";
 import { stripHtml } from "@/lib/utils/format";
@@ -69,32 +69,27 @@ async function resolveInitialVariation(product: WooProduct): Promise<{
   if (!product.is_in_stock || product.type !== "variable" || !product.variations.length) {
     return null;
   }
-  const firstVarAttr = product.attributes.find((a) => a.has_variations);
-  if (!firstVarAttr) return null;
 
-  // Sort terms numerically then alphabetically and map to variations.
-  // variation.attributes[].value may be a slug or a name — match both.
-  const sortedVariations = sortTerms(firstVarAttr.terms)
-    .map((t) =>
-      product.variations.find((v) =>
-        v.attributes.some((a) => a.value === t.slug || a.value === t.name)
-      )
-    )
-    .filter((v): v is NonNullable<typeof v> => v != null);
+  // Pick first in-stock variation, or fallback to the first available variation
+  const inStockVar = product.variations.find((v) => v.is_in_stock !== false);
+  const chosenVar = inStockVar || product.variations[0];
+  if (!chosenVar) return null;
 
-  if (!sortedVariations.length) return null;
+  let prices = chosenVar.prices;
+  let isInStock = chosenVar.is_in_stock ?? true;
 
-  const varDataAll = await Promise.all(
-    sortedVariations.map((v) => getVariationData(product.id, v.id))
-  );
-
-  const inStockIdx = varDataAll.findIndex((d) => d?.is_in_stock === true);
-  const chosenIdx = inStockIdx >= 0 ? inStockIdx : 0;
+  if (!prices) {
+    const varData = await getVariationData(product.id, chosenVar.id);
+    if (varData) {
+      prices = varData.prices ?? undefined;
+      isInStock = varData.is_in_stock;
+    }
+  }
 
   return {
-    variationId: sortedVariations[chosenIdx].id,
-    prices: varDataAll[chosenIdx]?.prices ?? undefined,
-    isInStock: varDataAll[chosenIdx]?.is_in_stock ?? false,
+    variationId: chosenVar.id,
+    prices,
+    isInStock,
   };
 }
 
@@ -107,7 +102,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const initialVariation = await resolveInitialVariation(product);
+  const [initialVariation, reviews] = await Promise.all([
+    resolveInitialVariation(product),
+    getProductReviewsFromServer({ productId: product.id }),
+  ]);
 
   return (
     <ProductPageLayout
@@ -115,6 +113,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       initialVariationId={initialVariation?.variationId}
       initialVariationPrices={initialVariation?.prices}
       initialVariationInStock={initialVariation?.isInStock}
+      reviews={reviews}
     />
   );
 }
