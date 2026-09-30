@@ -127,19 +127,41 @@ export type CheckoutFormValues = z.infer<typeof CheckoutFormSchema>;
  * components can apply their own defaults without crashing.
  */
 export const ShopParamsSchema = z.object({
-  page: z.string().regex(/^\d+$/).optional().catch(undefined),
+  page: z.string().regex(/^[1-9]\d*$/).optional().catch(undefined),
   orderby: z
-    .enum(["date", "price", "price-desc", "rating", "popularity", "alphabetical"])
+    .enum(["date", "price", "rating", "popularity"])
     .optional()
     .catch(undefined),
   order: z.enum(["asc", "desc"]).optional().catch(undefined),
   on_sale: z.enum(["true", "false"]).optional().catch(undefined),
   // Category slugs: lowercase letters, digits, hyphens only
+  // Brand slugs use the same safe taxonomy format as categories.
+  brand: z.string().regex(/^[a-z0-9-]{1,100}$/).optional().catch(undefined),
   category: z
     .string()
     .regex(/^[a-z0-9-]{1,100}$/)
     .optional()
     .catch(undefined),
+  tag: z.string().regex(/^[1-9]\d*$/).optional().catch(undefined),
+  min_price: z
+    .string()
+    .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
+    .optional()
+    .catch(undefined),
+  max_price: z
+    .string()
+    .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
+    .optional()
+    .catch(undefined),
+}).transform((params) => {
+  const min = params.min_price === undefined ? undefined : Number(params.min_price);
+  const max = params.max_price === undefined ? undefined : Number(params.max_price);
+  if (min !== undefined && min > 5000) params.min_price = undefined;
+  if (max !== undefined && max > 5000) params.max_price = undefined;
+  if (min !== undefined && max !== undefined && min > max) {
+    return { ...params, min_price: undefined, max_price: undefined };
+  }
+  return params;
 });
 
 // ── Search query ──────────────────────────────────────────────────────────────

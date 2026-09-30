@@ -4,7 +4,7 @@ import { ShopSortBar } from "@/components/shop/shop-sort-bar";
 import { ShopProductGrid } from "@/components/shop/shop-product-grid";
 import { ShopPagination } from "@/components/shop/shop-pagination";
 import { ShopParamsSchema } from "@/lib/validation/schemas";
-import { getProductsMeta, getCategories, getCategoryBySlug } from "@/lib/woocommerce/api";
+import { getProductsMeta, getCategories, getCategoryBySlug, getCurrencySettings, getProductTags, getProductBrands } from "@/lib/woocommerce/api";
 import { productToEcommerceItem } from "@/lib/utils/gtm-items";
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { FireGTMEvent } from "@/components/analytics/fire-gtm-event";
@@ -12,11 +12,7 @@ import { t } from "@/lib/i18n";
 
 interface ShopPageProps {
   searchParams: Promise<{
-    page?: string;
-    orderby?: string;
-    order?: string;
-    on_sale?: string;
-    category?: string;
+    [key: string]: string | string[] | undefined;
   }>;
 }
 
@@ -28,13 +24,13 @@ export async function generateMetadata({ searchParams }: ShopPageProps): Promise
   if (params.category) {
     const cat = await getCategoryBySlug(params.category);
     if (cat) {
-      title = `${cat.name} | ${t("brand.name")}`;
+      title = cat.name;
       if (cat.description) {
         description = cat.description.replace(/<[^>]*>?/gm, "");
       }
     }
   } else if (params.on_sale === "true") {
-    title = `${t("shop.onSale")} | ${t("brand.name")}`;
+    title = t("shop.onSale");
   }
 
   return {
@@ -61,7 +57,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const activeOrder = params.order ?? "desc";
   const onSale = params.on_sale === "true";
 
-  const [productsMeta, categories, activeCategory] = await Promise.all([
+  const [productsMeta, categories, activeCategory, tags, brands, currencySettings] = await Promise.all([
     getProductsMeta({
       per_page: 12,
       page: currentPage,
@@ -69,9 +65,16 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       order: activeOrder as "asc" | "desc",
       on_sale: onSale || undefined,
       category: params.category,
+      brand: params.brand,
+      tag: params.tag,
+      min_price: params.min_price,
+      max_price: params.max_price,
     }),
     getCategories({ hide_empty: true }).catch(() => []),
     params.category ? getCategoryBySlug(params.category).catch(() => null) : Promise.resolve(null),
+    getProductTags({ hide_empty: true }).catch(() => []),
+    getProductBrands({ hide_empty: true }).catch(() => []),
+    getCurrencySettings(),
   ]);
 
   const { products, totalPages } = productsMeta;
@@ -120,8 +123,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           onSale={onSale}
           categories={categories}
           activeCategory={params.category}
+          activeBrand={params.brand}
+          brands={brands}
+          activeTag={params.tag}
+          tags={tags}
+          currency={currencySettings}
         />
-        <ShopProductGrid searchParams={params} />
+        <ShopProductGrid products={products} searchParams={params} />
         <ShopPagination currentPage={currentPage} totalPages={totalPages} searchParams={params} />
       </div>
     </>
