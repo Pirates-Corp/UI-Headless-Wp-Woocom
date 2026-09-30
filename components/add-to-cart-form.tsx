@@ -69,7 +69,17 @@ function isTermInStock(
     }),
   );
   if (!matching.length) return false;
-  return matching.some((v) => v.is_in_stock !== false);
+  return matching.some(
+    (v) =>
+      v.is_in_stock !== false ||
+      Boolean(v.is_on_backorder) ||
+      Boolean(v.backorders_allowed) ||
+      Boolean(product.is_on_backorder) ||
+      Boolean(product.backorders_allowed) ||
+      (v.stock_quantity === null ||
+        v.stock_quantity === undefined ||
+        v.stock_quantity > 0),
+  );
 }
 
 /**
@@ -132,14 +142,71 @@ export function AddToCartForm({
   const [isBuyNowPending, startBuyNowTransition] = useTransition();
   const [justAdded, setJustAdded] = useState(false);
 
+  const matched =
+    product.type === "variable"
+      ? findMatchedVariation(product, selectedVariation)
+      : undefined;
+
+  const targetStockQuantity =
+    product.type === "variable"
+      ? (matched ? matched.stock_quantity : product.stock_quantity)
+      : product.stock_quantity;
+
+  const targetBackordersAllowed =
+    product.type === "variable"
+      ? Boolean(matched?.backorders_allowed || product.backorders_allowed)
+      : Boolean(product.backorders_allowed);
+
+  const isBackorder = Boolean(
+    (product.type === "variable"
+      ? (matched
+          ? Boolean(
+              matched.is_on_backorder ||
+              (matched.stock_quantity !== null &&
+                matched.stock_quantity !== undefined &&
+                matched.stock_quantity <= 0 &&
+                targetBackordersAllowed) ||
+              (matched.stock_quantity === null && product.is_on_backorder)
+            )
+          : Boolean(product.is_on_backorder))
+      : Boolean(
+          product.is_on_backorder ||
+          (product.stock_quantity !== null &&
+            product.stock_quantity !== undefined &&
+            product.stock_quantity <= 0 &&
+            product.backorders_allowed)
+        )) &&
+    (targetStockQuantity === null ||
+      targetStockQuantity === undefined ||
+      targetStockQuantity <= 0)
+  );
+
   const min = product.add_to_cart.minimum || 1;
-  const max = product.add_to_cart.maximum || 99;
+  const availableStock = targetBackordersAllowed
+    ? (product.add_to_cart.maximum || 99)
+    : (targetStockQuantity ??
+      product.add_to_cart.maximum ??
+      99);
+  const max = Math.max(
+    min,
+    Math.min(product.add_to_cart.maximum || 99, availableStock),
+  );
 
   // Use variation-level stock when available, fall back to parent product.
   const isInStock =
-    product.type === "variable"
-      ? (variationInStock ?? product.is_in_stock)
-      : product.is_in_stock;
+    isBackorder ||
+    targetBackordersAllowed ||
+    (product.type === "variable"
+      ? (matched
+          ? matched.is_in_stock !== false &&
+            (matched.stock_quantity === null ||
+              matched.stock_quantity === undefined ||
+              matched.stock_quantity > 0)
+          : (variationInStock ?? product.is_in_stock))
+      : product.is_in_stock &&
+        (product.stock_quantity === null ||
+          product.stock_quantity === undefined ||
+          product.stock_quantity > 0));
 
   function handleAddToCart() {
     if (product.type === "external") {
@@ -171,6 +238,7 @@ export function AddToCartForm({
       const result = await addItem(idToAdd, quantity);
       if (result.error) {
         toast.error(t("product.cantAddToCart"), { description: result.error });
+        router?.refresh?.();
       } else {
         trackAddToCart(
           {
@@ -220,6 +288,7 @@ export function AddToCartForm({
 
       if (result.error) {
         toast.error(t("product.cantAddToCart"), { description: result.error });
+        router?.refresh?.();
       } else {
         trackAddToCart(
           {

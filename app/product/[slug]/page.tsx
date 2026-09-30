@@ -6,7 +6,8 @@ import { sortTerms } from "@/lib/utils/product";
 import { stripHtml } from "@/lib/utils/format";
 import { ProductPageLayout } from "@/components/product/product-page-layout";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -65,24 +66,51 @@ async function resolveInitialVariation(product: WooProduct): Promise<{
   variationId: number;
   prices: WooProduct["prices"] | undefined;
   isInStock: boolean;
+  image?: WooProduct["images"][0] | null;
 } | null> {
-  if (!product.is_in_stock || product.type !== "variable" || !product.variations.length) {
+  if (
+    (!product.is_in_stock &&
+      !product.is_on_backorder &&
+      !product.backorders_allowed) ||
+    product.type !== "variable" ||
+    !product.variations.length
+  ) {
     return null;
   }
 
-  // Pick first in-stock variation, or fallback to the first available variation
-  const inStockVar = product.variations.find((v) => v.is_in_stock !== false);
+  // Pick first in-stock or backordered variation, or fallback to the first available variation
+  const inStockVar = product.variations.find(
+    (v) =>
+      v.is_in_stock !== false ||
+      Boolean(v.is_on_backorder) ||
+      Boolean(v.backorders_allowed) ||
+      Boolean(product.is_on_backorder) ||
+      Boolean(product.backorders_allowed),
+  );
   const chosenVar = inStockVar || product.variations[0];
   if (!chosenVar) return null;
 
   let prices = chosenVar.prices;
-  let isInStock = chosenVar.is_in_stock ?? true;
+  let isInStock =
+    chosenVar.is_in_stock ??
+    (Boolean(chosenVar.is_on_backorder) ||
+      Boolean(chosenVar.backorders_allowed) ||
+      Boolean(product.is_on_backorder) ||
+      Boolean(product.backorders_allowed) ||
+      true);
+  let image = chosenVar.image ?? null;
 
   if (!prices) {
     const varData = await getVariationData(product.id, chosenVar.id);
     if (varData) {
       prices = varData.prices ?? undefined;
-      isInStock = varData.is_in_stock;
+      isInStock =
+        varData.is_in_stock ||
+        Boolean(varData.is_on_backorder) ||
+        Boolean(varData.backorders_allowed) ||
+        Boolean(product.is_on_backorder) ||
+        Boolean(product.backorders_allowed);
+      image = varData.image ?? null;
     }
   }
 
@@ -90,6 +118,7 @@ async function resolveInitialVariation(product: WooProduct): Promise<{
     variationId: chosenVar.id,
     prices,
     isInStock,
+    image,
   };
 }
 
@@ -113,6 +142,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       initialVariationId={initialVariation?.variationId}
       initialVariationPrices={initialVariation?.prices}
       initialVariationInStock={initialVariation?.isInStock}
+      initialVariationImage={initialVariation?.image}
       reviews={reviews}
     />
   );

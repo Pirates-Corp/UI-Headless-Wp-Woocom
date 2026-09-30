@@ -13,7 +13,7 @@ import {
   resolveNextSelection,
 } from "@/lib/utils/product";
 import type { WooProduct, WooProductReview } from "@/lib/woocommerce/types";
-import { Truck, RotateCcw, ShieldCheck, Award } from "lucide-react";
+import { Truck, RotateCcw, ShieldCheck, Award, Info } from "lucide-react";
 import { t } from "@/lib/i18n";
 
 interface ProductInfoProps {
@@ -22,6 +22,8 @@ interface ProductInfoProps {
   initialVariationPrices?: WooProduct["prices"];
   initialVariationInStock?: boolean;
   reviews?: WooProductReview[];
+  selectedVariation?: Record<string, string>;
+  onVariationChange?: (attrName: string, termSlug: string) => void;
 }
 
 export function ProductInfo({
@@ -30,6 +32,8 @@ export function ProductInfo({
   initialVariationPrices,
   initialVariationInStock,
   reviews = [],
+  selectedVariation: controlledSelectedVariation,
+  onVariationChange: controlledOnVariationChange,
 }: ProductInfoProps) {
   const router = useRouter();
 
@@ -45,7 +49,7 @@ export function ProductInfo({
     ? reviews.length
     : product.review_count || 0;
 
-  const [selectedVariation, setSelectedVariation] = useState<Record<string, string>>(() => {
+  const [internalSelectedVariation, setInternalSelectedVariation] = useState<Record<string, string>>(() => {
     if (product.type !== "variable") return {};
 
     if (initialVariationId) {
@@ -58,6 +62,8 @@ export function ProductInfo({
     return first ? buildSelectionFromVariation(product, first) : {};
   });
 
+  const selectedVariation = controlledSelectedVariation ?? internalSelectedVariation;
+
   // Resolve the currently matched variation to derive prices, stock, and ID in real-time
   const matchedVariation = useMemo(() => {
     return product.type === "variable"
@@ -68,8 +74,12 @@ export function ProductInfo({
   const activeVariationId = matchedVariation?.id ?? initialVariationId;
 
   function handleVariationChange(attrName: string, termSlug: string) {
+    if (controlledOnVariationChange) {
+      controlledOnVariationChange(attrName, termSlug);
+      return;
+    }
     const next = resolveNextSelection(product, selectedVariation, attrName, termSlug);
-    setSelectedVariation(next);
+    setInternalSelectedVariation(next);
     const matched = findMatchedVariation(product, next);
     if (matched) {
       router.push(`/product/${product.slug}/${matched.id}`, { scroll: false });
@@ -80,11 +90,68 @@ export function ProductInfo({
   const displayPrices = matchedVariation?.prices ?? initialVariationPrices ?? product.prices;
   const { current, regular, onSale } = formatProductPrice(displayPrices);
 
+  const targetStockQuantity =
+    product.type === "variable"
+      ? (matchedVariation ? matchedVariation.stock_quantity : product.stock_quantity)
+      : product.stock_quantity;
+
+  const targetBackordersAllowed =
+    product.type === "variable"
+      ? Boolean(matchedVariation?.backorders_allowed || product.backorders_allowed)
+      : Boolean(product.backorders_allowed);
+
+  const isOnBackorder = Boolean(
+    (product.type === "variable"
+      ? (matchedVariation
+          ? Boolean(
+              matchedVariation.is_on_backorder ||
+              (matchedVariation.stock_quantity !== null &&
+                matchedVariation.stock_quantity !== undefined &&
+                matchedVariation.stock_quantity <= 0 &&
+                targetBackordersAllowed) ||
+              (matchedVariation.stock_quantity === null && product.is_on_backorder)
+            )
+          : Boolean(product.is_on_backorder))
+      : Boolean(
+          product.is_on_backorder ||
+          (product.stock_quantity !== null &&
+            product.stock_quantity !== undefined &&
+            product.stock_quantity <= 0 &&
+            product.backorders_allowed)
+        )) &&
+    (targetStockQuantity === null ||
+      targetStockQuantity === undefined ||
+      targetStockQuantity <= 0)
+  );
+
   // Stock priority: matched variation → server-fetched initialVariationInStock → parent product
   const variationInStock =
-    product.type === "variable"
-      ? (matchedVariation?.is_in_stock ?? initialVariationInStock ?? product.is_in_stock)
-      : product.is_in_stock;
+    isOnBackorder ||
+    targetBackordersAllowed ||
+    (product.type === "variable"
+      ? (matchedVariation
+          ? matchedVariation.is_in_stock !== false &&
+            (matchedVariation.stock_quantity === null ||
+              matchedVariation.stock_quantity === undefined ||
+              matchedVariation.stock_quantity > 0)
+          : (initialVariationInStock ?? product.is_in_stock))
+      : product.is_in_stock &&
+        (product.stock_quantity === null ||
+          product.stock_quantity === undefined ||
+          product.stock_quantity > 0));
+
+  const lowStockRemaining =
+    !isOnBackorder && product.type === "variable"
+      ? matchedVariation
+        ? (matchedVariation.low_stock_remaining ??
+          (matchedVariation.stock_quantity !== null &&
+          matchedVariation.stock_quantity !== undefined &&
+          matchedVariation.stock_quantity > 0 &&
+          matchedVariation.stock_quantity <= 3
+            ? matchedVariation.stock_quantity
+            : null))
+        : product.low_stock_remaining
+      : (!isOnBackorder ? product.low_stock_remaining : null);
 
   const divisor = Math.pow(10, displayPrices.currency_minor_unit);
   const priceAmt = parseInt(displayPrices.price) / divisor;
@@ -142,22 +209,38 @@ export function ProductInfo({
       )}
 
       {/* Stock — use variation-level stock for variable products */}
-      <div className="flex items-center gap-3">
-        {variationInStock ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            {t('product.inStock')}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />
-            {t('product.outOfStock')}
-          </span>
-        )}
-        {product.low_stock_remaining && (
-          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-            Only {product.low_stock_remaining} left – order soon
-          </span>
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-3">
+          {isOnBackorder ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+              Available on backorder
+            </span>
+          ) : variationInStock ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              {t('product.inStock')}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-hidden="true" />
+              {t('product.outOfStock')}
+            </span>
+          )}
+          {!isOnBackorder && variationInStock && lowStockRemaining !== null && lowStockRemaining !== undefined && lowStockRemaining > 0 && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              Only {lowStockRemaining} {lowStockRemaining === 1 ? "item" : "items"} left – order soon
+            </span>
+          )}
+        </div>
+
+        {isOnBackorder && (
+          <div className="flex items-start gap-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+            <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <span>
+              This item is currently on backorder. You can place your order now, and it will be fulfilled and dispatched as soon as new stock is available.
+            </span>
+          </div>
         )}
       </div>
 

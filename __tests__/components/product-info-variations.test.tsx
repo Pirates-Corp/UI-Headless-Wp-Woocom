@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ProductInfo } from "@/components/product/product-info";
 import { makeProduct } from "../fixtures";
 import type { WooProduct, WooProductAttribute } from "@/lib/woocommerce/types";
+import { t } from "@/lib/i18n";
 
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
@@ -148,5 +149,140 @@ describe("ProductInfo Variations & Live Price Updating", () => {
 
     // Navigates URL without scroll jump
     expect(mockPush).toHaveBeenCalledWith("/product/aromatic-fragrance-blend/166", { scroll: false });
+  });
+
+  it("displays Out of Stock when selected variation is out of stock", () => {
+    const oosProduct: WooProduct = {
+      ...variableProduct,
+      variations: [
+        {
+          ...variableProduct.variations[0],
+          is_in_stock: false,
+          stock_quantity: 0,
+        },
+      ],
+    };
+
+    render(<ProductInfo product={oosProduct} initialVariationId={167} />);
+    expect(screen.getAllByText("Out of Stock").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /^Out of Stock$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Buy Now/i })).toBeDisabled();
+  });
+
+  it("displays 'Only 2 items left – order soon' when quantity is 2 (below 3)", () => {
+    const lowStockProduct: WooProduct = {
+      ...variableProduct,
+      variations: [
+        {
+          ...variableProduct.variations[0],
+          is_in_stock: true,
+          stock_quantity: 2,
+          low_stock_remaining: 2,
+        },
+      ],
+    };
+
+    render(<ProductInfo product={lowStockProduct} initialVariationId={167} />);
+    expect(screen.getByText("In Stock")).toBeInTheDocument();
+    expect(screen.getByText("Only 2 items left – order soon")).toBeInTheDocument();
+  });
+
+  it("displays 'Available on backorder' notice and enables purchase buttons when backorder is allowed with stock -1", () => {
+    const backorderProduct: WooProduct = {
+      ...variableProduct,
+      variations: [
+        {
+          ...variableProduct.variations[0],
+          is_in_stock: true,
+          is_on_backorder: true,
+          backorders_allowed: true,
+          stock_quantity: -1,
+        },
+      ],
+    };
+
+    render(<ProductInfo product={backorderProduct} initialVariationId={167} />);
+    expect(screen.getByText("Available on backorder")).toBeInTheDocument();
+    expect(
+      screen.getByText(/This item is currently on backorder/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: new RegExp(t("product.addToCart"), "i"),
+      }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Buy Now/i }),
+    ).not.toBeDisabled();
+  });
+
+  it("inherits backorder from parent product when variation does not manage individual stock", () => {
+    const parentBackorderProduct: WooProduct = {
+      ...variableProduct,
+      is_on_backorder: true,
+      backorders_allowed: true,
+      stock_quantity: 0,
+      variations: [
+        {
+          ...variableProduct.variations[0],
+          is_in_stock: true,
+          is_on_backorder: undefined,
+          backorders_allowed: undefined,
+          stock_quantity: null,
+        },
+      ],
+    };
+
+    render(<ProductInfo product={parentBackorderProduct} initialVariationId={167} />);
+    expect(screen.getByText("Available on backorder")).toBeInTheDocument();
+    expect(
+      screen.getByText(/This item is currently on backorder/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: new RegExp(t("product.addToCart"), "i"),
+      }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Buy Now/i }),
+    ).not.toBeDisabled();
+  });
+
+  it("shows 'In Stock' and low stock notice (not on backorder) when stock is 2 even if backorders are allowed", () => {
+    const inStockWithBackordersAllowedProduct: WooProduct = {
+      ...variableProduct,
+      is_in_stock: true,
+      is_on_backorder: false,
+      backorders_allowed: true,
+      stock_quantity: 2,
+      low_stock_remaining: 2,
+      variations: [
+        {
+          ...variableProduct.variations[0],
+          is_in_stock: true,
+          is_on_backorder: false,
+          backorders_allowed: true,
+          stock_quantity: 2,
+          low_stock_remaining: 2,
+        },
+      ],
+    };
+
+    render(
+      <ProductInfo
+        product={inStockWithBackordersAllowedProduct}
+        initialVariationId={167}
+      />
+    );
+    expect(screen.getByText("In Stock")).toBeInTheDocument();
+    expect(
+      screen.getByText("Only 2 items left – order soon")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Available on backorder")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/This item is currently on backorder/i)
+    ).not.toBeInTheDocument();
   });
 });

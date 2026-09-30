@@ -460,7 +460,7 @@ function normalizeV3Product(
   const variations: WooProductVariation[] =
     v3Variations && v3Variations.length > 0
       ? v3Variations.map((v) => {
-          const normalizedVar = normalizeV3Variation(v, currency);
+          const normalizedVar = normalizeV3Variation(v, currency, raw);
           return {
             id: v.id,
             attributes: v.attributes.map((va) => ({
@@ -469,17 +469,12 @@ function normalizeV3Product(
             })),
             prices: normalizedVar.prices,
             is_in_stock: normalizedVar.is_in_stock,
-            image: v.image
-              ? {
-                  id: v.image.id,
-                  src: v.image.src,
-                  thumbnail: v.image.src,
-                  srcset: "",
-                  sizes: "",
-                  name: v.image.name,
-                  alt: v.image.alt,
-                }
-              : null,
+            is_purchasable: normalizedVar.is_purchasable,
+            is_on_backorder: normalizedVar.is_on_backorder,
+            backorders_allowed: normalizedVar.backorders_allowed,
+            stock_quantity: normalizedVar.stock_quantity,
+            low_stock_remaining: normalizedVar.low_stock_remaining,
+            image: normalizedVar.image,
           };
         })
       : raw.variations.map((varId) => ({
@@ -487,12 +482,42 @@ function normalizeV3Product(
           attributes: [],
         }));
 
-  // Compute low_stock_remaining
+  const backordersAllowed =
+    raw.backorders_allowed === true ||
+    raw.backorders === "notify" ||
+    raw.backorders === "yes";
+
+  const isOnBackorder =
+    raw.stock_status === "onbackorder" ||
+    raw.backordered === true ||
+    (Boolean(raw.manage_stock) &&
+      raw.stock_quantity !== null &&
+      raw.stock_quantity !== undefined &&
+      raw.stock_quantity <= 0 &&
+      backordersAllowed);
+
+  const isProductInStock =
+    raw.purchasable !== false &&
+    (isOnBackorder ||
+      backordersAllowed ||
+      (raw.stock_status === "instock" &&
+        (!raw.manage_stock ||
+          raw.stock_quantity === null ||
+          raw.stock_quantity === undefined ||
+          raw.stock_quantity > 0)));
+
+  // Compute low_stock_remaining: below or equal to 3 or <= low_stock_amount
   const lowStockRemaining =
-    raw.manage_stock && raw.stock_quantity !== null && raw.low_stock_amount !== null
-      ? raw.stock_quantity <= raw.low_stock_amount
-        ? raw.stock_quantity
-        : null
+    !isOnBackorder &&
+    raw.manage_stock &&
+    raw.stock_quantity !== null &&
+    raw.stock_quantity !== undefined &&
+    raw.stock_quantity > 0 &&
+    (raw.stock_quantity <= 3 ||
+      (raw.low_stock_amount !== null &&
+        raw.low_stock_amount !== undefined &&
+        raw.stock_quantity <= raw.low_stock_amount))
+      ? raw.stock_quantity
       : null;
 
   return {
@@ -512,18 +537,21 @@ function normalizeV3Product(
     attributes,
     variations,
     has_options: raw.type === "variable" && raw.attributes.some((a) => a.variation),
-    is_purchasable: raw.purchasable,
-    is_in_stock: raw.stock_status === "instock",
+    is_purchasable: raw.purchasable !== false,
+    is_in_stock: isProductInStock,
+    is_on_backorder: isOnBackorder,
+    backorders_allowed: backordersAllowed,
     on_sale: raw.on_sale,
     average_rating: raw.average_rating,
     review_count: raw.rating_count,
+    stock_quantity: raw.manage_stock && raw.stock_quantity !== null ? raw.stock_quantity : null,
     low_stock_remaining: lowStockRemaining,
     add_to_cart: {
       text: raw.type === "variable" ? "Select options" : "Add to cart",
       description: "",
       url: "",
       minimum: 1,
-      maximum: raw.manage_stock && raw.stock_quantity !== null ? raw.stock_quantity : 9999,
+      maximum: raw.manage_stock && raw.stock_quantity !== null && raw.stock_quantity > 0 ? raw.stock_quantity : 9999,
       multiple_of: 1,
     },
     external_url: raw.external_url,
@@ -538,13 +566,92 @@ function normalizeV3Product(
 function normalizeV3Variation(
   raw: WooV3Variation,
   currency: CurrencySettings,
-): { prices: WooProduct["prices"]; is_in_stock: boolean } {
+  parentRaw?: WooV3Product,
+): {
+  prices: WooProduct["prices"];
+  is_in_stock: boolean;
+  is_purchasable: boolean;
+  is_on_backorder: boolean;
+  backorders_allowed: boolean;
+  stock_quantity: number | null;
+  low_stock_remaining: number | null;
+  image: WooImage | null;
+} {
   const toMinorUnits = (price: string, fallback = "0"): string => {
     if (!price && price !== "0") return fallback;
     const num = parseFloat(price);
     if (isNaN(num)) return fallback;
     return String(Math.round(num * Math.pow(10, currency.minor_unit)));
   };
+
+  const parentBackordersAllowed = parentRaw
+    ? parentRaw.backorders_allowed === true ||
+      parentRaw.backorders === "notify" ||
+      parentRaw.backorders === "yes"
+    : false;
+
+  const parentIsOnBackorder = parentRaw
+    ? parentRaw.stock_status === "onbackorder" ||
+      parentRaw.backordered === true ||
+      (Boolean(parentRaw.manage_stock) &&
+        parentRaw.stock_quantity !== null &&
+        parentRaw.stock_quantity !== undefined &&
+        parentRaw.stock_quantity <= 0 &&
+        parentBackordersAllowed)
+    : false;
+
+  const backordersAllowed =
+    raw.backorders_allowed === true ||
+    raw.backorders === "notify" ||
+    raw.backorders === "yes" ||
+    (!raw.manage_stock && parentBackordersAllowed);
+
+  const effectiveManageStock = Boolean(raw.manage_stock || (!raw.manage_stock && parentRaw?.manage_stock));
+  const effectiveStockQuantity =
+    raw.manage_stock && raw.stock_quantity !== null && raw.stock_quantity !== undefined
+      ? raw.stock_quantity
+      : (!raw.manage_stock && parentRaw?.manage_stock && parentRaw.stock_quantity !== null && parentRaw.stock_quantity !== undefined
+          ? parentRaw.stock_quantity
+          : null);
+
+  const isOnBackorder =
+    raw.stock_status === "onbackorder" ||
+    raw.backordered === true ||
+    parentIsOnBackorder ||
+    (effectiveManageStock &&
+      effectiveStockQuantity !== null &&
+      effectiveStockQuantity <= 0 &&
+      backordersAllowed);
+
+  const isInStock =
+    raw.purchasable !== false &&
+    (isOnBackorder ||
+      backordersAllowed ||
+      (raw.stock_status === "instock" &&
+        (!effectiveManageStock ||
+          effectiveStockQuantity === null ||
+          effectiveStockQuantity > 0)) ||
+      (!raw.manage_stock && parentRaw
+        ? (parentIsOnBackorder || parentBackordersAllowed || parentRaw.stock_status === "instock")
+        : false));
+
+  const stockQuantity = effectiveStockQuantity;
+
+  const lowStockThreshold =
+    raw.low_stock_amount !== null && raw.low_stock_amount !== undefined
+      ? raw.low_stock_amount
+      : (parentRaw?.low_stock_amount !== null && parentRaw?.low_stock_amount !== undefined
+          ? parentRaw.low_stock_amount
+          : 3);
+
+  const lowStockRemaining =
+    !isOnBackorder &&
+    effectiveManageStock &&
+    stockQuantity !== null &&
+    stockQuantity > 0 &&
+    (stockQuantity <= 3 || stockQuantity <= lowStockThreshold)
+      ? stockQuantity
+      : null;
 
   return {
     prices: {
@@ -560,7 +667,24 @@ function normalizeV3Variation(
       currency_suffix: currency.suffix,
       price_range: null,
     },
-    is_in_stock: raw.stock_status === "instock",
+    is_in_stock: isInStock,
+    is_purchasable: raw.purchasable !== false,
+    is_on_backorder: isOnBackorder,
+    backorders_allowed: backordersAllowed,
+    stock_quantity: stockQuantity,
+    low_stock_remaining: lowStockRemaining,
+    image:
+      raw.image && raw.image.src && raw.image.src.trim() !== ""
+        ? {
+            id: raw.image.id,
+            src: raw.image.src,
+            thumbnail: raw.image.src,
+            srcset: "",
+            sizes: "",
+            name: raw.image.name || "",
+            alt: raw.image.alt || "",
+          }
+        : null,
   };
 }
 
@@ -734,7 +858,7 @@ export async function getProducts(params?: {
 
   const raw = await restApiFetchJson<WooV3Product[]>(
     "/products",
-    { next: { revalidate: 3600 } },
+    { cache: "no-store" },
     searchParams,
   );
 
@@ -775,7 +899,7 @@ export async function getProductsMeta(
 
   const res = await restApiFetch<WooV3Product[]>(
     "/products",
-    { next: { revalidate: 3600 } },
+    { cache: "no-store" },
     searchParams,
   );
 
@@ -794,7 +918,7 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
   let raw: WooV3Product | null = null;
   const bySlug = await restApiFetchJson<WooV3Product[]>(
     "/products",
-    { next: { revalidate: 3600 } },
+    { cache: "no-store" },
     { slug: idOrSlug },
   );
   if (bySlug.length > 0) {
@@ -803,7 +927,7 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
     // Fallback: try as numeric ID
     raw = await restApiFetchJson<WooV3Product>(
       `/products/${idOrSlug}`,
-      { next: { revalidate: 3600 } },
+      { cache: "no-store" },
     );
   }
 
@@ -817,7 +941,7 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
     try {
       fullVariations = await restApiFetchJson<WooV3Variation[]>(
         `/products/${raw.id}/variations`,
-        { next: { revalidate: 3600 } },
+        { cache: "no-store" },
         { per_page: "100" },
       );
     } catch (err) {
@@ -839,6 +963,12 @@ export async function getVariationData(
 ): Promise<{
   prices: WooProduct["prices"] | null;
   is_in_stock: boolean;
+  is_purchasable: boolean;
+  is_on_backorder: boolean;
+  backorders_allowed: boolean;
+  stock_quantity: number | null;
+  low_stock_remaining: number | null;
+  image: WooImage | null;
 } | null> {
   try {
     const currency = await getCurrencySettings();
@@ -850,6 +980,12 @@ export async function getVariationData(
     return {
       prices: normalized.prices,
       is_in_stock: normalized.is_in_stock,
+      is_purchasable: normalized.is_purchasable,
+      is_on_backorder: normalized.is_on_backorder,
+      backorders_allowed: normalized.backorders_allowed,
+      stock_quantity: normalized.stock_quantity,
+      low_stock_remaining: normalized.low_stock_remaining,
+      image: normalized.image,
     };
   } catch {
     return null;

@@ -38,6 +38,13 @@ export interface WooV3Variation {
   sale_price: string;
   on_sale: boolean;
   stock_status: "instock" | "outofstock" | "onbackorder";
+  manage_stock?: boolean;
+  stock_quantity?: number | null;
+  low_stock_amount?: number | null;
+  backorders?: "no" | "notify" | "yes";
+  backorders_allowed?: boolean;
+  backordered?: boolean;
+  purchasable?: boolean;
   attributes: { id: number; name: string; option: string }[];
   image?: WooV3ProductImage;
 }
@@ -61,6 +68,9 @@ export interface WooV3Product {
   manage_stock: boolean;
   stock_quantity: number | null;
   low_stock_amount: number | null;
+  backorders?: "no" | "notify" | "yes";
+  backorders_allowed?: boolean;
+  backordered?: boolean;
   average_rating: string;
   rating_count: number;
   featured: boolean;
@@ -153,6 +163,11 @@ export interface WooProductVariation {
   /** Present only when fetched via ?type=variation; absent in base product response. */
   prices?: WooProductPrices;
   is_in_stock?: boolean;
+  is_purchasable?: boolean;
+  is_on_backorder?: boolean;
+  backorders_allowed?: boolean;
+  stock_quantity?: number | null;
+  low_stock_remaining?: number | null;
   image?: WooImage | null;
 }
 
@@ -187,9 +202,12 @@ export interface WooProduct {
   has_options: boolean;
   is_purchasable: boolean;
   is_in_stock: boolean;
+  is_on_backorder?: boolean;
+  backorders_allowed?: boolean;
   on_sale: boolean;
   average_rating: string;
   review_count: number;
+  stock_quantity?: number | null;
   low_stock_remaining: number | null;
   add_to_cart: {
     text: string;

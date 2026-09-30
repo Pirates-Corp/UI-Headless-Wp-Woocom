@@ -4,7 +4,8 @@ import { getProduct, getVariationData, getProductReviewsFromServer } from "@/lib
 import { stripHtml } from "@/lib/utils/format";
 import { ProductPageLayout } from "@/components/product/product-page-layout";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ slug: string; variationId: string }>;
@@ -57,6 +58,7 @@ export default async function ProductVariationPage({ params }: Props) {
 
   const prices = matchedVar?.prices || variationData?.prices || undefined;
   const inStock = matchedVar?.is_in_stock ?? variationData?.is_in_stock ?? product.is_in_stock;
+  const image = matchedVar?.image || variationData?.image || null;
 
   return (
     <ProductPageLayout
@@ -64,6 +66,7 @@ export default async function ProductVariationPage({ params }: Props) {
       initialVariationId={vid}
       initialVariationPrices={prices}
       initialVariationInStock={inStock}
+      initialVariationImage={image}
       reviews={reviews}
     />
   );
