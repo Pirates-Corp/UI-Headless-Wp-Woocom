@@ -339,6 +339,72 @@ describe("variable product", () => {
     );
     await waitFor(() => expect(mockAddItem).toHaveBeenCalledWith(99, 1));
   });
+
+  it("shows price only on the last attribute for multi-attribute products", () => {
+    const multiAttrProduct = makeProduct({
+      type: "variable",
+      attributes: [
+        {
+          id: 1,
+          name: "Size",
+          taxonomy: "pa_size",
+          has_variations: true,
+          terms: [
+            { id: 1, name: "Small", slug: "small", default: false },
+            { id: 2, name: "Large", slug: "large", default: false },
+          ],
+        },
+        {
+          id: 2,
+          name: "Color",
+          taxonomy: "pa_color",
+          has_variations: true,
+          terms: [
+            { id: 3, name: "Blue", slug: "blue", default: false },
+            { id: 4, name: "Red", slug: "red", default: false },
+          ],
+        },
+      ],
+      variations: [
+        {
+          id: 101,
+          attributes: [
+            { name: "pa_size", value: "Small" },
+            { name: "pa_color", value: "Blue" },
+          ],
+          prices: {
+            price: "5000",
+            regular_price: "5000",
+            sale_price: "",
+            currency_code: "INR",
+            currency_symbol: "₹",
+            currency_minor_unit: 2,
+            currency_decimal_separator: ".",
+            currency_thousand_separator: ",",
+            currency_prefix: "₹",
+            currency_suffix: "",
+          },
+          is_in_stock: true,
+        },
+      ],
+    });
+
+    render(
+      <AddToCartForm
+        product={multiAttrProduct}
+        selectedVariation={{ Size: "small", Color: "blue" }}
+        onVariationChange={noopVariationChange}
+      />,
+    );
+
+    const smallBtn = screen.getByRole("button", { name: /^Small$/i });
+    const blueBtn = screen.getByRole("button", { name: /Blue/i });
+
+    // First attribute (Size) should only show the term name "Small", not a price
+    expect(smallBtn).toHaveTextContent(/^Small$/);
+    // Last attribute (Color) should show price information
+    expect(blueBtn).toHaveTextContent(/₹50\.00/);
+  });
 });
 
 // ── Quantity input ────────────────────────────────────────────────────────────

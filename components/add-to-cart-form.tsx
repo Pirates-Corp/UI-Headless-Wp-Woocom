@@ -271,7 +271,8 @@ export function AddToCartForm({
       {product.type === "variable" &&
         product.attributes
           .filter((attr) => attr.has_variations)
-          .map((attr) => {
+          .map((attr, attrIdx, variationAttrs) => {
+            const isLastAttr = attrIdx === variationAttrs.length - 1;
             const sorted = sortTerms(attr.terms);
             const selectedTerm = sorted.find(
               (term) => term.slug === selectedVariation[attr.name],
@@ -298,6 +299,32 @@ export function AddToCartForm({
                       product,
                     );
                     const termIsOos = termStock === false;
+
+                    if (!isLastAttr) {
+                      return (
+                        <button
+                          key={term.slug}
+                          type="button"
+                          onClick={() => onVariationChange(attr.name, term.slug)}
+                          aria-pressed={isSelected}
+                          title={termIsOos ? "Out of stock" : undefined}
+                          className={cn(
+                            "relative flex items-center justify-center rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150 cursor-pointer min-h-[38px]",
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                            isSelected
+                              ? "border-2 border-[#007185] dark:border-sky-500 bg-[#edf5f8] dark:bg-sky-950/40 text-foreground font-bold shadow-xs"
+                              : "border border-zinc-300 dark:border-zinc-700 bg-card text-foreground/90 hover:border-zinc-400 dark:hover:border-zinc-500 hover:shadow-xs",
+                            termIsOos &&
+                              !isSelected &&
+                              "opacity-60 border-dashed bg-muted/30 text-muted-foreground",
+                            termIsOos && "line-through",
+                          )}
+                        >
+                          <span>{term.name}</span>
+                        </button>
+                      );
+                    }
+
                     const priceInfo = getVariationPriceForTerm(
                       product,
                       selectedVariation,
