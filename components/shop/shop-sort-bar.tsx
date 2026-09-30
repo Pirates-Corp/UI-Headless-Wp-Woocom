@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
-import { ChevronDown, Check, X, Tag } from "lucide-react";
-import type { WooCategory } from "@/lib/woocommerce/types";
+import type { CurrencySettings, WooBrand, WooCategory, WooTag } from "@/lib/woocommerce/types";
+import { ShopFilterDrawer } from "@/components/shop/shop-filter-drawer";
 
 interface SortOption {
   id: string;
@@ -15,7 +16,7 @@ interface SortOption {
 }
 
 const SORT_OPTIONS: SortOption[] = [
-  { id: "default", label: t("shop.sort.default") || "Default sorting", orderby: undefined, order: undefined },
+  { id: "default", label: t("shop.sort.default") || "Default sorting" },
   { id: "popularity", label: t("shop.sort.popularity") || "Sort by popularity", orderby: "popularity", order: "desc" },
   { id: "rating", label: t("shop.sort.rating") || "Sort by average rating", orderby: "rating", order: "desc" },
   { id: "latest", label: t("shop.sort.latest") || "Sort by latest", orderby: "date", order: "desc" },
@@ -28,8 +29,22 @@ interface ShopSortBarProps {
   activeOrderby: string;
   activeOrder: string;
   onSale: boolean;
-  categories?: WooCategory[];
+  categories: WooCategory[];
+  brands: WooBrand[];
+  tags: WooTag[];
+  currency: CurrencySettings;
   activeCategory?: string;
+  activeBrand?: string;
+  activeTag?: string;
+}
+
+function formatPrice(value: string, currency: CurrencySettings) {
+  const number = Number(value);
+  const formatted = number.toLocaleString(undefined, {
+    minimumFractionDigits: currency.minor_unit,
+    maximumFractionDigits: currency.minor_unit,
+  });
+  return `${currency.prefix}${formatted}${currency.suffix}`;
 }
 
 export function ShopSortBar({
@@ -37,251 +52,187 @@ export function ShopSortBar({
   activeOrderby,
   activeOrder,
   onSale,
-  categories = [],
+  categories,
+  brands,
+  tags,
+  currency,
   activeCategory,
+  activeBrand,
+  activeTag,
 }: ShopSortBarProps) {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside or pressing Escape
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        sortDropdownRef.current &&
-        !sortDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsSortOpen(false);
-      }
+    function handleOutside(event: MouseEvent) {
+      if (!sortDropdownRef.current?.contains(event.target as Node)) setIsSortOpen(false);
     }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsSortOpen(false);
-      }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsSortOpen(false);
     }
-
     if (isSortOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("mousedown", handleOutside);
+      document.addEventListener("keydown", handleKey);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
     };
   }, [isSortOpen]);
 
   function buildUrl(changes: Record<string, string | undefined | null>) {
-    const p = new URLSearchParams();
-    Object.entries(searchParams).forEach(([k, v]) => {
-      if (v !== undefined && v !== "") {
-        p.set(k, v);
-      }
+    const params = new URLSearchParams();
+    Object.entries(searchParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== "") params.set(key, value);
     });
-    Object.entries(changes).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === "") {
-        p.delete(k);
-      } else {
-        p.set(k, v);
-      }
+    Object.entries(changes).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") params.delete(key);
+      else params.set(key, value);
     });
-    // Reset page to 1 whenever filters or sorting change
-    if (!changes.page) {
-      p.delete("page");
-    }
-    const qs = p.toString();
-    return `/shop${qs ? `?${qs}` : ""}`;
+    params.delete("page");
+    const query = params.toString();
+    return `/shop${query ? `?${query}` : ""}`;
   }
 
-  // Determine current active sort option
-  const currentOption =
-    SORT_OPTIONS.find((opt) => {
-      if (!searchParams.orderby && opt.id === "default") return true;
-      if (
-        searchParams.orderby === opt.orderby &&
-        (opt.order === undefined || searchParams.order === opt.order)
-      ) {
-        return true;
-      }
-      return false;
-    }) ?? SORT_OPTIONS[0];
-
-  const activeCategoryObj = categories.find((c) => c.slug === activeCategory);
-  const hasActiveFilters = Boolean(activeCategory || onSale || (searchParams.orderby && searchParams.orderby !== "date"));
+  const selectedSort = SORT_OPTIONS.find((option) => {
+    if (option.id === "default") return !searchParams.orderby && !searchParams.order;
+    return option.orderby === activeOrderby && option.order === activeOrder;
+  }) ?? SORT_OPTIONS[0];
+  const category = categories.find((item) => item.slug === activeCategory);
+  const brand = brands.find((item) => item.slug === activeBrand);
+  const tag = tags.find((item) => String(item.id) === activeTag);
+  const hasFilters = Boolean(
+    activeCategory ||
+      activeBrand ||
+      activeTag ||
+      onSale ||
+      searchParams.min_price !== undefined ||
+      searchParams.max_price !== undefined,
+  );
 
   return (
-    <div className="space-y-4 mb-8 pb-6 border-b border-border/50">
-      {/* Main Bar: Categories on Left, Sale + Sort Dropdown on Right */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Left: Category Navigation Pills */}
-        {categories.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none min-w-0">
-            <span className="text-xs text-muted-foreground tracking-wider uppercase shrink-0 mr-1 font-medium">
-              Category:
-            </span>
-            <Link
-              href={buildUrl({ category: null })}
-              className={cn(
-                "text-xs px-3.5 py-1.5 rounded-full border transition-all duration-200 shrink-0 font-medium",
-                !activeCategory
-                  ? "bg-foreground text-background border-foreground shadow-xs"
-                  : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"
-              )}
-            >
-              All
-            </Link>
-            {categories.map((cat) => {
-              const isCatActive = activeCategory === cat.slug;
-              return (
-                <Link
-                  key={cat.id}
-                  href={buildUrl({ category: isCatActive ? null : cat.slug })}
-                  className={cn(
-                    "text-xs px-3.5 py-1.5 rounded-full border transition-all duration-200 shrink-0 flex items-center gap-1.5",
-                    isCatActive
-                      ? "bg-foreground text-background border-foreground font-medium shadow-xs"
-                      : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"
-                  )}
-                >
-                  <span>{cat.name}</span>
-                  {cat.count !== undefined && (
-                    <span
-                      className={cn(
-                        "text-[10px] opacity-70",
-                        isCatActive ? "text-background/80" : "text-muted-foreground"
-                      )}
-                    >
-                      ({cat.count})
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+    <div className="mb-6 border-b border-border/50 pb-4">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <div className="min-w-0 justify-self-start">
+          <ShopFilterDrawer
+            searchParams={searchParams}
+            categories={categories}
+            brands={brands}
+            tags={tags}
+            currency={currency}
+            activeCategory={activeCategory}
+            activeBrand={activeBrand}
+            activeTag={activeTag}
+            minPrice={searchParams.min_price}
+            maxPrice={searchParams.max_price}
+            onSale={onSale}
+          />
+        </div>
 
-        {/* Right: Show Sale Only + Sort Dropdown */}
-        <div className="flex items-center gap-2.5 shrink-0 ml-auto md:ml-0">
-          {/* Sale toggle */}
-          {!onSale ? (
-            <Link
-              href={buildUrl({ on_sale: "true" })}
-              className="text-xs px-3.5 py-2 rounded-lg border border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground transition-colors shrink-0 flex items-center gap-1.5"
-            >
-              <Tag className="h-3.5 w-3.5 opacity-70" />
-              <span>{t("shop.showSaleOnly")}</span>
-            </Link>
-          ) : (
-            <Link
-              href={buildUrl({ on_sale: null })}
-              className="text-xs px-3.5 py-2 rounded-lg border border-[var(--gold)] text-[var(--gold)] bg-[var(--gold-light)]/15 hover:bg-[var(--gold-light)]/25 transition-colors shrink-0 flex items-center gap-1.5 font-medium"
-            >
-              <Tag className="h-3.5 w-3.5" />
-              <span>{t("shop.clearOnSale")}</span>
-              <X className="h-3 w-3 ml-0.5" />
-            </Link>
-          )}
-
-          {/* Sort Dropdown Menu */}
-          <div className="relative" ref={sortDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsSortOpen((prev) => !prev)}
-              className={cn(
-                "flex items-center justify-between gap-2.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 border min-w-[170px] sm:min-w-[200px] cursor-pointer",
-                isSortOpen
-                  ? "bg-accent border-foreground/30 text-foreground shadow-xs"
-                  : "border-border bg-background hover:bg-accent/60 text-foreground hover:border-foreground/40"
-              )}
-              aria-expanded={isSortOpen}
-              aria-haspopup="listbox"
-              aria-label="Sort products"
-            >
-              <span className="truncate">{currentOption.label}</span>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
-                  isSortOpen && "rotate-180 text-foreground"
+        <div className="relative order-2 col-span-2 min-w-0 lg:order-2 lg:col-span-1 lg:px-3">
+          {hasFilters ? (
+            <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
+              <div className="flex w-max items-center gap-2 lg:w-auto lg:flex-wrap" aria-label="Applied filters">
+                {activeCategory && (
+                  <Link
+                    href={buildUrl({ category: null })}
+                    title="Remove category filter"
+                    aria-label={`Remove category filter: ${category?.name ?? activeCategory}`}
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
+                  >
+                    <span>Category: <strong>{category?.name ?? activeCategory}</strong></span>
+                    <X className="size-3.5" aria-hidden="true" />
+                  </Link>
                 )}
-              />
-            </button>
-
-            {/* Dropdown Menu List */}
-            {isSortOpen && (
-              <div
-                role="listbox"
-                className="absolute right-0 mt-1.5 w-56 sm:w-60 origin-top-right rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-black/5 dark:ring-white/10 z-50 animate-in fade-in-0 zoom-in-95 duration-150"
-              >
-                {SORT_OPTIONS.map((opt) => {
-                  const isSelected = currentOption.id === opt.id;
-                  return (
-                    <Link
-                      key={opt.id}
-                      href={buildUrl({ orderby: opt.orderby, order: opt.order })}
-                      onClick={() => setIsSortOpen(false)}
-                      role="option"
-                      aria-selected={isSelected}
-                      className={cn(
-                        "flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-sm transition-colors group cursor-pointer",
-                        isSelected
-                          ? "bg-primary text-primary-foreground font-medium"
-                          : "text-foreground hover:bg-accent hover:text-foreground"
-                      )}
-                    >
-                      <span>{opt.label}</span>
-                      {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                    </Link>
-                  );
-                })}
+                {(searchParams.min_price !== undefined || searchParams.max_price !== undefined) && (
+                  <Link
+                    href={buildUrl({ min_price: null, max_price: null })}
+                    title="Remove price filter"
+                    aria-label="Remove price filter"
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-[var(--gold)]/40 bg-[var(--gold-light)]/20 px-3 text-xs"
+                  >
+                    <span>Price: <strong>{formatPrice(searchParams.min_price ?? "0", currency)} – {formatPrice(searchParams.max_price ?? "5000", currency)}</strong></span>
+                    <X className="size-3.5" aria-hidden="true" />
+                  </Link>
+                )}
+                {activeBrand && (
+                  <Link
+                    href={buildUrl({ brand: null })}
+                    title="Remove brand filter"
+                    aria-label={`Remove brand filter: ${brand?.name ?? activeBrand}`}
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
+                  >
+                    <span>Brand: <strong>{brand?.name ?? activeBrand}</strong></span>
+                    <X className="size-3.5" aria-hidden="true" />
+                  </Link>
+                )}
+                {activeTag && (
+                  <Link
+                    href={buildUrl({ tag: null })}
+                    title="Remove tag filter"
+                    aria-label={`Remove tag filter: ${tag?.name ?? activeTag}`}
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
+                  >
+                    <span>Tag: <strong>{tag?.name ?? activeTag}</strong></span>
+                    <X className="size-3.5" aria-hidden="true" />
+                  </Link>
+                )}
+                {onSale && (
+                  <Link
+                    href={buildUrl({ on_sale: null })}
+                    title="Remove sale filter"
+                    aria-label="Remove on sale filter"
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
+                  >
+                    On sale<X className="size-3.5" aria-hidden="true" />
+                  </Link>
+                )}
+                <Link
+                  href={buildUrl({ category: null, brand: null, min_price: null, max_price: null, tag: null, on_sale: null })}
+                  className="shrink-0 px-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                >
+                  Clear filters
+                </Link>
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div ref={sortDropdownRef} className="relative order-1 ml-auto flex shrink-0 items-center gap-2 lg:order-3">
+          <span className="hidden text-sm text-muted-foreground sm:inline">Sort by</span>
+          <button
+            type="button"
+            onClick={() => setIsSortOpen((value) => !value)}
+            className="flex h-10 min-w-[132px] items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 text-sm hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-w-[150px]"
+            aria-expanded={isSortOpen}
+            aria-haspopup="menu"
+            aria-label="Sort products"
+          >
+            <span className="truncate">{selectedSort.label.replace(/^Sort by /, "")}</span>
+            <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", isSortOpen && "rotate-180")} aria-hidden="true" />
+          </button>
+          {isSortOpen && (
+            <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-border bg-popover p-1.5 shadow-xl">
+              {SORT_OPTIONS.map((option) => {
+                const selected = selectedSort.id === option.id;
+                return (
+                  <Link
+                    key={option.id}
+                    href={buildUrl({ orderby: option.orderby, order: option.order })}
+                    role="menuitem"
+                    aria-current={selected ? "true" : undefined}
+                    onClick={() => setIsSortOpen(false)}
+                    className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {option.label}
+                    <Check className={cn("size-4", selected ? "opacity-100" : "opacity-0")} aria-hidden="true" />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Active Filter Chips / Badges */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap items-center gap-2 pt-2">
-          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
-            Active filters:
-          </span>
-          {activeCategory && (
-            <Link
-              href={buildUrl({ category: null })}
-              className="inline-flex items-center gap-1.5 text-xs bg-accent hover:bg-accent/80 text-foreground px-2.5 py-1 rounded-md border border-border transition-colors"
-              title="Remove category filter"
-            >
-              <span>Category: <strong>{activeCategoryObj?.name || activeCategory}</strong></span>
-              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-            </Link>
-          )}
-          {onSale && (
-            <Link
-              href={buildUrl({ on_sale: null })}
-              className="inline-flex items-center gap-1.5 text-xs bg-[var(--gold-light)]/20 hover:bg-[var(--gold-light)]/30 text-[var(--gold)] px-2.5 py-1 rounded-md border border-[var(--gold)]/30 transition-colors"
-              title="Remove sale filter"
-            >
-              <span><strong>On Sale</strong></span>
-              <X className="h-3 w-3" />
-            </Link>
-          )}
-          {searchParams.orderby && searchParams.orderby !== "date" && (
-            <Link
-              href={buildUrl({ orderby: null, order: null })}
-              className="inline-flex items-center gap-1.5 text-xs bg-accent hover:bg-accent/80 text-foreground px-2.5 py-1 rounded-md border border-border transition-colors"
-              title="Reset sort to default"
-            >
-              <span>Sort: <strong>{currentOption.label}</strong></span>
-              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-            </Link>
-          )}
-          <Link
-            href="/shop"
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 ml-1"
-          >
-            Clear all
-          </Link>
-        </div>
-      )}
     </div>
   );
 }

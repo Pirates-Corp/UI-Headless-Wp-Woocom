@@ -126,7 +126,7 @@ export const en: Record<string, string> = {
   "shop.showSaleOnly": "Show Sale Only",
   "shop.clearOnSale": "Clear: On Sale",
   "shop.clearFilters": "Clear all filters",
-  "shop.noProducts": "No products found. Please check your store configuration.",
+  "shop.noProducts": "No products match the current filters.",
   "shop.paginationLabel": "Pagination",
   "shop.paginationFirst": "First page",
   "shop.paginationPrev": "Previous page",
