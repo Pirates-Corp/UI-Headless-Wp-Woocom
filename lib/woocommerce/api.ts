@@ -10,6 +10,8 @@ import type {
   WooProductReview,
   WooTag,
   WooBrand,
+  WooProductVariation,
+  WooImage,
 } from "./types";
 
 const WP_URL = `${process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL}://${process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST}`;
@@ -1148,6 +1150,7 @@ export async function createWooOrderOnServer(orderData: {
   payment_method_title?: string;
   set_paid?: boolean;
   status?: string;
+  customer_id?: number;
   billing?: Record<string, string>;
   shipping?: Record<string, string>;
   line_items?: Array<{
@@ -1179,6 +1182,41 @@ export async function createWooOrderOnServer(orderData: {
     console.error("[createWooOrderOnServer] WooCommerce REST API response:", res.status, body);
   }
   return res;
+}
+
+/**
+ * Server-only helper to assign an existing WooCommerce order to a customer ID via REST API v3.
+ * Used for orders placed via Store API (which creates orders without customer_id) or post-order fallbacks.
+ * Returns true if successful, false otherwise. Never throws.
+ */
+export async function assignOrderToCustomer(
+  orderId: number | string,
+  customerId: number,
+): Promise<boolean> {
+  if (!orderId || !customerId || customerId <= 0) {
+    return false;
+  }
+  try {
+    const res = await restApiFetch(`/orders/${orderId}`, {
+      method: "PUT",
+      body: JSON.stringify({ customer_id: customerId }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn(
+        `[assignOrderToCustomer] Failed to assign order ${orderId} to customer ${customerId} (status ${res.status}): ${body}`,
+      );
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn(
+      `[assignOrderToCustomer] Error assigning order ${orderId} to customer ${customerId}:`,
+      err,
+    );
+    return false;
+  }
 }
 
 // ─── Product Reviews (REST API v3) ──────────────────────────────────────────

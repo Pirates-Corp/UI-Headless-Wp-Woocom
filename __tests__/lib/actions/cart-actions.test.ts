@@ -15,6 +15,7 @@ jest.mock("@/lib/woocommerce/api", () => ({
   extractCartToken: jest.fn().mockReturnValue("token-123"),
   extractNonce: jest.fn().mockReturnValue("nonce-123"),
   getCountriesFromServer: jest.fn().mockResolvedValue([]),
+  assignOrderToCustomer: jest.fn().mockResolvedValue(true),
 }));
 
 describe("Cart Actions & Error Formatting", () => {

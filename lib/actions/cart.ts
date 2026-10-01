@@ -13,7 +13,16 @@ import {
   extractCartToken,
   extractNonce,
   getCountriesFromServer,
+  assignOrderToCustomer,
 } from "@/lib/woocommerce/api";
+import { getSessionUser } from "@/lib/auth/session";
+import type {
+  WooCart,
+  BillingAddress,
+  ShippingAddress,
+  WooCheckoutOrder,
+  WooCountry,
+} from "@/lib/woocommerce/types";
 import {
   AddToCartSchema,
   UpdateCartItemSchema,
@@ -149,6 +158,20 @@ export async function checkout(
       return { order: null, cartToken: resToken, nonce: resNonce, error: formatCartError(body, "Checkout failed. Please check your information and try again.") };
     }
     const order = (await res.json()) as WooCheckoutOrder;
+
+    // After Store API checkout succeeds and order_id is known, assign order to customer if logged in
+    if (order?.order_id) {
+      try {
+        const user = await getSessionUser();
+        const customerId = user?.id ? Number(user.id) : 0;
+        if (Number.isFinite(customerId) && customerId > 0) {
+          await assignOrderToCustomer(order.order_id, customerId);
+        }
+      } catch (assignErr) {
+        console.warn("[checkout] Failed to assign order to customer:", assignErr);
+      }
+    }
+
     return { order, cartToken: resToken, nonce: resNonce };
   } catch (e) {
     console.error("[checkout] Unexpected error:", (e as Error).message);
