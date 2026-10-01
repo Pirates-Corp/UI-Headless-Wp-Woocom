@@ -49,6 +49,29 @@ export const ShippingSchema = z.object({
     .default(""),
 });
 
+export const SavedAddressInputSchema = z.object({
+  label: z.string().max(100).default("Home"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  company: z.string().default(""),
+  phone: z.string().default(""),
+  address_1: z.string().min(1, "Address is required"),
+  address_2: z.string().default(""),
+  city: z.string().min(1, "City is required"),
+  state: z.string().default(""),
+  postcode: z
+    .string()
+    .min(1, "Postcode is required")
+    .regex(PostcodeRegex, "Postcode must be exactly 6 digits"),
+  country: z
+    .string()
+    .min(2, "Country is required")
+    .refine((val) => isCountryAllowed(val), {
+      message: "Selected country is not allowed for checkout",
+    }),
+  is_default: z.boolean().default(false),
+});
+
 /**
  * Loose address schema used for shipping estimate updates — all fields optional
  * strings, no field can exceed 255 characters to prevent oversized payloads.

@@ -8,7 +8,7 @@ import type { WooCountry } from "@/lib/woocommerce/types";
  * - `["IN"]`: India only (preselected, fixed, non-editable, only Indian states).
  * - `["IN", "GB", "AE"]`: Multiple countries (searchable dropdown, only these countries visible).
  */
-export const ALLOWED_COUNTRIES: readonly string[] = ["IN", "GB", "AE", "US"];
+export const ALLOWED_COUNTRIES: readonly string[] = ["IN"];
 
 /**
  * Checks whether a given country code is allowed according to the configuration.

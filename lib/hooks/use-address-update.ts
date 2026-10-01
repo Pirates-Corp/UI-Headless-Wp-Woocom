@@ -5,6 +5,7 @@ import { useCartStore } from "@/lib/store/cart-store";
 import { useBuyNowStore } from "@/lib/store/buy-now-store";
 import { useCheckoutStore } from "@/lib/store/checkout-store";
 import { updateCustomer } from "@/lib/actions/cart";
+import { getEffectiveAddresses } from "@/lib/checkout/effective-addresses";
 
 /**
  * Debounced address → shipping-rate recalculation.
@@ -19,11 +20,15 @@ export function useAddressUpdate(cartToken: string | null, isBuyNow: boolean = f
   const [isUpdatingAddress, startAddressTransition] = useTransition();
   const { setSelectedPaymentMethod } = useCheckoutStore();
 
-  const sameAsShipping = useCheckoutStore((s) => s.sameAsShipping);
+  const billingSameAsShipping = useCheckoutStore((s) => s.billingSameAsShipping);
   const billing = useCheckoutStore((s) => s.billing);
   const shipping = useCheckoutStore((s) => s.shipping);
 
-  const effectiveShipping = sameAsShipping ? billing : shipping;
+  const { shipping: effectiveShipping } = getEffectiveAddresses({
+    shipping,
+    billing,
+    billingSameAsShipping,
+  });
 
   // Stable primitive deps to prevent effect re-running on every object reference change
   const shipCountry = effectiveShipping.country;
@@ -50,17 +55,20 @@ export function useAddressUpdate(cartToken: string | null, isBuyNow: boolean = f
       if (!token) return;
 
       // Snapshot store at the moment the timer fires — avoids stale closure.
-      const { billing: b, shipping: s, sameAsShipping: same } =
-        useCheckoutStore.getState();
-      const effective = same ? b : s;
+      const state = useCheckoutStore.getState();
+      const { billing: effectiveB, shipping: effectiveS } = getEffectiveAddresses({
+        shipping: state.shipping,
+        billing: state.billing,
+        billingSameAsShipping: state.billingSameAsShipping,
+      });
 
       startAddressTransition(async () => {
         const nonce = isBuyNow
           ? useBuyNowStore.getState().buyNowNonce
           : useCartStore.getState().nonce;
         const result = await updateCustomer(
-          { ...b } as Record<string, string>,
-          { ...effective } as Record<string, string>,
+          { ...effectiveB } as Record<string, string>,
+          { ...effectiveS } as Record<string, string>,
           token,
           nonce
         );
@@ -97,7 +105,7 @@ export function useAddressUpdate(cartToken: string | null, isBuyNow: boolean = f
     // We intentionally omit cartTokenRef and setSelectedPaymentMethod — both are
     // stable references (ref object + Zustand setter) and must not re-trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shipCountry, shipState, shipCity, shipPost, sameAsShipping, isBuyNow]);
+  }, [shipCountry, shipState, shipCity, shipPost, billingSameAsShipping, isBuyNow]);
 
   return { isUpdatingAddress };
 }

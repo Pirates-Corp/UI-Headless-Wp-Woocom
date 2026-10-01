@@ -27,7 +27,7 @@ export function CheckoutOrderSummary({
   isRazorpayMethod,
 }: CheckoutOrderSummaryProps) {
   return (
-    <Card className="sticky top-24">
+    <Card className="border-border/80 shadow-sm">
       <CardHeader>
         <CardTitle>{t('checkout.orderSummaryTitle')}</CardTitle>
       </CardHeader>
