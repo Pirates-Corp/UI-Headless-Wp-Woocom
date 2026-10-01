@@ -5,6 +5,7 @@ import {
   checkoutOnServer,
   assignOrderToCustomer,
   getWooOrderForPayment,
+  getCartFromServer,
 } from "@/lib/woocommerce/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { createRazorpayOrder } from "@/lib/razorpay-server";
@@ -53,7 +54,23 @@ export async function createRazorpayCheckoutOrder(
 
   // 1. First attempt: Create WC order via REST API v3 (status: pending)
   try {
-    const selectedShipping = cart?.shipping_rates
+    // Derive selected shipping rate server-side from Store API GET /cart if cartToken is provided
+    let shippingRates = cart?.shipping_rates;
+    if (cartToken) {
+      try {
+        const cartRes = await getCartFromServer(cartToken);
+        if (cartRes.ok) {
+          const serverCart = (await cartRes.json()) as WooCart;
+          if (serverCart?.shipping_rates && serverCart.shipping_rates.length > 0) {
+            shippingRates = serverCart.shipping_rates;
+          }
+        }
+      } catch (err) {
+        console.warn("[createRazorpayCheckoutOrder] Failed to fetch server cart for shipping validation:", err);
+      }
+    }
+
+    const selectedShipping = shippingRates
       ?.flatMap((pkg) => pkg.shipping_rates)
       ?.find((rate) => rate.selected);
 
