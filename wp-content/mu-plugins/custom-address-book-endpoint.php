@@ -94,6 +94,7 @@ function myapp_address_book_get_valid_user(WP_REST_Request $request) {
 
 /**
  * Retrieve saved address book from user meta.
+ * Automatically seeds the address book with the customer's native WooCommerce shipping address if empty.
  *
  * @param int $user_id
  * @return array
@@ -101,8 +102,17 @@ function myapp_address_book_get_valid_user(WP_REST_Request $request) {
 function myapp_get_user_address_book($user_id) {
     $addresses = get_user_meta($user_id, '_myapp_address_book', true);
     if (!is_array($addresses)) {
-        return [];
+        $addresses = [];
     }
+
+    if (empty($addresses)) {
+        $virtual = myapp_get_virtual_default_address($user_id);
+        if ($virtual) {
+            $addresses = [$virtual];
+            myapp_save_user_address_book($user_id, $addresses);
+        }
+    }
+
     return array_values($addresses);
 }
 
@@ -166,14 +176,18 @@ function myapp_sync_default_to_wc_shipping($user_id, $default_address) {
  * @return array|null
  */
 function myapp_get_virtual_default_address($user_id) {
+    $uuid = function_exists('wp_generate_uuid4')
+        ? wp_generate_uuid4()
+        : sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000, mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+
     if (!class_exists('WC_Customer')) {
         $address_1 = get_user_meta($user_id, 'shipping_address_1', true);
         if (empty($address_1)) {
             return null;
         }
         return [
-            'id'         => 'default-native',
-            'label'      => 'Default Shipping',
+            'id'         => $uuid,
+            'label'      => 'Home',
             'first_name' => (string) get_user_meta($user_id, 'shipping_first_name', true),
             'last_name'  => (string) get_user_meta($user_id, 'shipping_last_name', true),
             'company'    => (string) get_user_meta($user_id, 'shipping_company', true),
@@ -202,8 +216,8 @@ function myapp_get_virtual_default_address($user_id) {
             : (string) get_user_meta($user_id, 'shipping_phone', true);
 
         return [
-            'id'         => 'default-native',
-            'label'      => 'Default Shipping',
+            'id'         => $uuid,
+            'label'      => 'Home',
             'first_name' => (string) $customer->get_shipping_first_name(),
             'last_name'  => (string) $customer->get_shipping_last_name(),
             'company'    => (string) $customer->get_shipping_company(),
@@ -351,13 +365,6 @@ add_action('rest_api_init', function () {
             }
 
             $addresses = myapp_get_user_address_book($user_id);
-            if (empty($addresses)) {
-                $virtual = myapp_get_virtual_default_address($user_id);
-                if ($virtual) {
-                    $addresses = [$virtual];
-                }
-            }
-
             return new WP_REST_Response(myapp_format_address_book_response($addresses), 200);
         },
     ]);
@@ -436,7 +443,10 @@ add_action('rest_api_init', function () {
                 );
             }
 
-            $new_id = wp_generate_uuid4();
+            $new_id = function_exists('wp_generate_uuid4')
+                ? wp_generate_uuid4()
+                : sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000, mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+
             $is_first = empty($addresses);
             $is_default = $is_first || !empty($sanitized['is_default']);
 
@@ -462,8 +472,8 @@ add_action('rest_api_init', function () {
         },
     ]);
 
-    // PUT /addresses/(?P<id>[a-f0-9-]+)
-    register_rest_route($namespace, '/addresses/(?P<id>[a-f0-9-]+)', [
+    // PUT /addresses/(?P<id>[a-zA-Z0-9_-]+)
+    register_rest_route($namespace, '/addresses/(?P<id>[a-zA-Z0-9_-]+)', [
         'methods'             => WP_REST_Server::EDITABLE,
         'permission_callback' => 'myapp_validate_address_book_auth',
         'callback'            => function (WP_REST_Request $request) {
@@ -522,8 +532,8 @@ add_action('rest_api_init', function () {
         },
     ]);
 
-    // DELETE /addresses/(?P<id>[a-f0-9-]+)
-    register_rest_route($namespace, '/addresses/(?P<id>[a-f0-9-]+)', [
+    // DELETE /addresses/(?P<id>[a-zA-Z0-9_-]+)
+    register_rest_route($namespace, '/addresses/(?P<id>[a-zA-Z0-9_-]+)', [
         'methods'             => WP_REST_Server::DELETABLE,
         'permission_callback' => 'myapp_validate_address_book_auth',
         'callback'            => function (WP_REST_Request $request) {
@@ -571,8 +581,8 @@ add_action('rest_api_init', function () {
         },
     ]);
 
-    // POST /addresses/(?P<id>[a-f0-9-]+)/default
-    register_rest_route($namespace, '/addresses/(?P<id>[a-f0-9-]+)/default', [
+    // POST /addresses/(?P<id>[a-zA-Z0-9_-]+)/default
+    register_rest_route($namespace, '/addresses/(?P<id>[a-zA-Z0-9_-]+)/default', [
         'methods'             => WP_REST_Server::CREATABLE,
         'permission_callback' => 'myapp_validate_address_book_auth',
         'callback'            => function (WP_REST_Request $request) {
