@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AddToCartForm } from "@/components/add-to-cart-form";
@@ -152,24 +153,43 @@ export function ProductInfo({ product, initialVariationId, initialVariationPrice
         variationInStock={variationInStock}
       />
 
-      {/* Trust badges */}
+      {/* Contextual policy links */}
       <div className="grid grid-cols-2 gap-3 pt-1">
-        {([
-          { Icon: Truck, label: t('product.freeShipping'), sub: t('product.freeShippingSub') },
-          { Icon: RotateCcw, label: t('product.returns'), sub: t('product.returnsSub') },
-          { Icon: ShieldCheck, label: t('product.secureCheckout'), sub: t('product.secureCheckoutSub') },
-          { Icon: Award, label: t('product.authenticity'), sub: t('product.authenticitySub') },
-        ] as const).map(({ Icon, label, sub }) => (
-          <div key={label} className="flex items-start gap-2">
-            <Icon className="h-4 w-4 mt-0.5 shrink-0 text-[var(--gold)]" aria-hidden="true" />
-            <div>
-              <p className="text-xs font-medium">{label}</p>
-              <p className="text-[11px] text-muted-foreground">{sub}</p>
-            </div>
-          </div>
-        ))}
+        <Link
+          href="/legal/shipping-policy"
+          className="flex items-start gap-2 rounded-md p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Truck className="mt-0.5 size-4 shrink-0 text-[var(--gold)]" aria-hidden="true" />
+          <span>
+            <span className="block text-xs font-medium">Shipping information</span>
+            <span className="block text-[11px] text-muted-foreground">View delivery details</span>
+          </span>
+        </Link>
+        <Link
+          href="/legal/returns-refunds"
+          className="flex items-start gap-2 rounded-md p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <RotateCcw className="mt-0.5 size-4 shrink-0 text-[var(--gold)]" aria-hidden="true" />
+          <span>
+            <span className="block text-xs font-medium">Returns &amp; refunds</span>
+            <span className="block text-[11px] text-muted-foreground">View current policy</span>
+          </span>
+        </Link>
+        <div className="flex items-start gap-2 p-1">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--gold)]" aria-hidden="true" />
+          <span>
+            <span className="block text-xs font-medium">Payment options</span>
+            <span className="block text-[11px] text-muted-foreground">Shown at checkout</span>
+          </span>
+        </div>
+        <div className="flex items-start gap-2 p-1">
+          <Award className="mt-0.5 size-4 shrink-0 text-[var(--gold)]" aria-hidden="true" />
+          <span>
+            <span className="block text-xs font-medium">Product information</span>
+            <span className="block text-[11px] text-muted-foreground">Review details before ordering</span>
+          </span>
+        </div>
       </div>
-
       {/* Meta */}
       <div className="space-y-1.5 pt-1">
         {product.sku && (

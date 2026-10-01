@@ -28,6 +28,9 @@ export async function checkoutAction(
   const sameAsShipping = formData.get("sameAsShipping") === "1";
   const isBuyNow = formData.get("isBuyNow") === "1" || formData.get("isBuyNow") === "true";
 
+  if (formData.get("policyAgreement") !== "on") {
+    return { type: "error", message: "Please agree to the Terms & Conditions and Privacy Policy." };
+  }
   const g = (key: string) => String(formData.get(key) ?? "");
 
   const rawBilling = {
