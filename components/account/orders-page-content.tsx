@@ -7,8 +7,15 @@ import { useAuthStore } from "@/lib/store/auth-store";
 import {
   getCustomerOrdersAction,
   type CustomerOrderSummary,
+  type CustomerOrderLineItem,
 } from "@/lib/actions/account";
+import {
+  getCustomerReviewedProductsAction,
+  type ReviewedProductSummary,
+} from "@/lib/actions/reviews";
+import type { WooProductReview } from "@/lib/woocommerce/types";
 import { OrderTrackingView } from "@/components/account/order-tracking-view";
+import { WriteReviewDialog } from "@/components/account/write-review-dialog";
 import {
   Package,
   ShoppingBag,
@@ -23,6 +30,8 @@ import {
   Truck,
   ChevronDown,
   ChevronUp,
+  Star,
+  Edit3,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/defaultbutton";
 import { Badge } from "@/components/ui/badge";
@@ -87,15 +96,60 @@ export function OrdersPageContent() {
   const router = useRouter();
   const { isAuthenticated, isInitialized } = useAuthStore();
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([]);
+  const [reviewedProductsMap, setReviewedProductsMap] = useState<
+    Map<number, ReviewedProductSummary>
+  >(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedTracking, setExpandedTracking] = useState<Record<number, boolean>>({});
+
+  // Review Dialog State
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [selectedReviewProduct, setSelectedReviewProduct] = useState<{
+    id: number;
+    name: string;
+    price?: number | string;
+    image?: string;
+  } | null>(null);
+  const [selectedExistingReview, setSelectedExistingReview] =
+    useState<ReviewedProductSummary | null>(null);
+  const [selectedReviewOrderNumber, setSelectedReviewOrderNumber] = useState<string>("");
 
   const toggleTracking = (orderId: number) => {
     setExpandedTracking((prev) => ({
       ...prev,
       [orderId]: !prev[orderId],
     }));
+  };
+
+  const handleOpenReviewModal = (
+    item: CustomerOrderLineItem,
+    orderNumber: string,
+    existingReview?: ReviewedProductSummary | null
+  ) => {
+    setSelectedReviewProduct({
+      id: item.productId || item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+    });
+    setSelectedReviewOrderNumber(orderNumber);
+    setSelectedExistingReview(existingReview || null);
+    setIsReviewOpen(true);
+  };
+
+  const handleReviewSuccess = (productId: number, review: WooProductReview) => {
+    setReviewedProductsMap((prev) => {
+      const next = new Map(prev);
+      next.set(productId, {
+        productId: review.product_id || productId,
+        reviewId: review.id,
+        rating: review.rating,
+        dateCreated: review.date_created || review.date_created_gmt || "",
+        review: review.review ? review.review.replace(/<[^>]*>?/gm, "").trim() : "",
+      });
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -107,13 +161,25 @@ export function OrdersPageContent() {
     }
 
     if (isAuthenticated) {
-      getCustomerOrdersAction()
-        .then((res) => {
+      Promise.all([
+        getCustomerOrdersAction(),
+        getCustomerReviewedProductsAction(),
+      ])
+        .then(([ordersRes, reviewsRes]) => {
           if (!isMounted) return;
-          if (res.success) {
-            setOrders(res.orders);
+
+          if (ordersRes.success) {
+            setOrders(ordersRes.orders);
           } else {
-            setError(res.error || "Failed to load orders");
+            setError(ordersRes.error || "Failed to load orders");
+          }
+
+          if (reviewsRes.success && reviewsRes.reviewedProducts) {
+            const map = new Map<number, ReviewedProductSummary>();
+            reviewsRes.reviewedProducts.forEach((r) => {
+              map.set(r.productId, r);
+            });
+            setReviewedProductsMap(map);
           }
         })
         .catch((err) => {
@@ -160,7 +226,7 @@ export function OrdersPageContent() {
             My Orders
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            View your order history and check shipment status.
+            View your order history, manage product reviews, and check shipment status.
           </p>
         </div>
 
@@ -226,6 +292,7 @@ export function OrdersPageContent() {
         <div className="space-y-5">
           {orders.map((order) => {
             const isTrackingOpen = Boolean(expandedTracking[order.id]);
+            const isCompleted = order.status.toLowerCase() === "completed";
 
             return (
               <div
@@ -270,31 +337,78 @@ export function OrdersPageContent() {
                   </div>
                 </div>
 
-                {/* Items Summary */}
+                {/* Items Summary with Review and Edit Option */}
                 {order.lineItems.length > 0 && (
                   <div className="space-y-2 pt-1">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block">
                       Purchased Items ({order.itemCount})
                     </span>
                     <div className="divide-y divide-border/40 rounded-xl bg-muted/30 border border-border/40 px-3 py-1">
-                      {order.lineItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="py-2 flex items-center justify-between text-xs sm:text-sm"
-                        >
-                          <div className="flex items-center gap-2 max-w-[70%]">
-                            <span className="font-medium text-foreground truncate">
-                              {item.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              × {item.quantity}
-                            </span>
+                      {order.lineItems.map((item) => {
+                        const targetProductId = item.productId || item.id;
+                        const existingReview = reviewedProductsMap.get(targetProductId);
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 max-w-full sm:max-w-[60%]">
+                              <div className="min-w-0">
+                                <span className="font-medium text-foreground truncate block">
+                                  {item.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Qty: {item.quantity} • {formatOrderAmount(item.total, order)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0 flex-wrap">
+                              {/* Write Review or Edit Review for Completed Orders */}
+                              {isCompleted && (
+                                <>
+                                  {existingReview ? (
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                        <span>{existingReview.rating} ★</span>
+                                      </span>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleOpenReviewModal(item, order.number, existingReview)
+                                        }
+                                        className="text-xs h-7 px-2.5 gap-1.5 rounded-lg border-border/80 hover:border-primary/50 hover:bg-primary/10 transition-all font-medium text-foreground"
+                                      >
+                                        <Edit3 className="w-3 h-3 text-muted-foreground" />
+                                        <span>Edit Review</span>
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleOpenReviewModal(item, order.number, null)}
+                                      className="text-xs h-7 px-2.5 gap-1.5 rounded-lg border-primary/30 text-primary hover:bg-primary/10 hover:border-primary transition-all font-medium"
+                                    >
+                                      <Star className="w-3 h-3 text-primary" />
+                                      <span>Write Review</span>
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+
+                              <span className="font-medium text-foreground hidden sm:inline-block">
+                                {formatOrderAmount(item.total, order)}
+                              </span>
+                            </div>
                           </div>
-                          <span className="font-medium text-foreground">
-                            {formatOrderAmount(item.total, order)}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -338,6 +452,16 @@ export function OrdersPageContent() {
           })}
         </div>
       )}
+
+      {/* Write / Edit Product Review Modal Dialog */}
+      <WriteReviewDialog
+        open={isReviewOpen}
+        onOpenChange={setIsReviewOpen}
+        product={selectedReviewProduct}
+        existingReview={selectedExistingReview}
+        orderNumber={selectedReviewOrderNumber}
+        onSuccess={handleReviewSuccess}
+      />
     </main>
   );
 }

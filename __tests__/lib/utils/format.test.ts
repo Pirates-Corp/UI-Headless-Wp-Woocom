@@ -63,6 +63,30 @@ describe("formatProductPrice", () => {
 
     expect(result.onSale).toBe(false);
   });
+
+  it("marks product as NOT on sale when sale_price is '0' and price equals regular_price", () => {
+    const result = formatProductPrice({
+      ...basePrices,
+      price: "600000",
+      regular_price: "600000",
+      sale_price: "0",
+    });
+
+    expect(result.current).toBe("$6000.00");
+    expect(result.regular).toBe("$6000.00");
+    expect(result.onSale).toBe(false);
+  });
+
+  it("marks product as NOT on sale when regular_price is not greater than price", () => {
+    const result = formatProductPrice({
+      ...basePrices,
+      price: "600000",
+      regular_price: "600000",
+      sale_price: "",
+    });
+
+    expect(result.onSale).toBe(false);
+  });
 });
 
 describe("stripHtml", () => {

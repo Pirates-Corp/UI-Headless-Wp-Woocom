@@ -23,6 +23,7 @@ import { useAddressUpdate } from "@/lib/hooks/use-address-update";
 import { trackBeginCheckout, trackAddShippingInfo, trackAddPaymentInfo } from "@/lib/utils/gtm-events";
 import { cartItemsToEcommerceItems } from "@/lib/utils/gtm-items";
 import { t } from "@/lib/i18n";
+import type { WooShippingPackage, WooShippingRate } from "@/lib/woocommerce/types";
 
 // Global type declaration for Razorpay checkout.js
 declare global {
@@ -254,7 +255,7 @@ function CheckoutContent() {
         const c = result.cart;
         const currency = c.totals.currency_code;
         const value = parseInt(c.totals.total_price) / Math.pow(10, c.totals.currency_minor_unit);
-        const selectedRate = c.shipping_rates.flatMap((pkg) => pkg.shipping_rates).find((r) => r.selected);
+        const selectedRate = c.shipping_rates.flatMap((pkg: WooShippingPackage) => pkg.shipping_rates).find((r: WooShippingRate) => r.selected);
         trackAddShippingInfo(cartItemsToEcommerceItems(c.items), currency, value, selectedRate?.name ?? rateId);
       }
     });

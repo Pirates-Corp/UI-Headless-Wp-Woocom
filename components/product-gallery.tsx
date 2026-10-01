@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import type { WooImage } from "@/lib/woocommerce/types";
 import { cn } from "@/lib/utils";
@@ -10,12 +10,36 @@ import { ProductLightbox } from "@/components/product/product-lightbox";
 interface ProductGalleryProps {
   images: WooImage[];
   productName: string;
+  activeImage?: WooImage | null;
 }
 
-export function ProductGallery({ images, productName }: ProductGalleryProps) {
+export function ProductGallery({
+  images: rawImages,
+  productName,
+  activeImage,
+}: ProductGalleryProps) {
+  const images = (rawImages || []).filter((img) => Boolean(img?.src && img.src.trim() !== ""));
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Sync selected index whenever active variation image or image list changes
+  useEffect(() => {
+    if (activeImage?.src && images.length > 0) {
+      const idx = images.findIndex(
+        (img) =>
+          (img.id && activeImage.id && img.id === activeImage.id) ||
+          img.src === activeImage.src,
+      );
+      if (idx !== -1) {
+        setSelectedIndex(idx);
+      } else {
+        setSelectedIndex(0);
+      }
+    } else {
+      setSelectedIndex(0);
+    }
+  }, [activeImage, images]);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
@@ -38,7 +62,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
     );
   }
 
-  const selectedImage = images[selectedIndex];
+  const selectedImage = images[selectedIndex] || images[0];
 
   return (
     <>

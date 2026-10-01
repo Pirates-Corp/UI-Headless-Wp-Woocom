@@ -219,3 +219,49 @@ export const RazorpayVerifySchema = z.object({
   /** Customer billing email for order confirmation redirect */
   billing_email: z.string().email().optional(),
 });
+
+// ── Product Review Schema ───────────────────────────────────────────────────
+
+export const CreateProductReviewSchema = z.object({
+  productId: z.number().int().positive("A valid product ID is required"),
+  rating: z
+    .number()
+    .int()
+    .min(1, "Please select a rating between 1 and 5 stars")
+    .max(5, "Rating cannot exceed 5 stars"),
+  review: z
+    .string()
+    .trim()
+    .min(5, "Review must be at least 5 characters")
+    .max(2000, "Review cannot exceed 2000 characters"),
+  reviewer: z
+    .string()
+    .trim()
+    .min(1, "Reviewer name is required")
+    .max(100, "Name is too long"),
+  reviewerEmail: z
+    .string()
+    .trim()
+    .email("A valid email address is required"),
+});
+
+export type CreateProductReviewInput = z.infer<typeof CreateProductReviewSchema>;
+
+export const UpdateProductReviewSchema = z.object({
+  reviewId: z.number().int().positive("A valid review ID is required"),
+  productId: z.number().int().positive("A valid product ID is required"),
+  rating: z
+    .number()
+    .int()
+    .min(1, "Please select a rating between 1 and 5 stars")
+    .max(5, "Rating cannot exceed 5 stars"),
+  review: z
+    .string()
+    .trim()
+    .min(5, "Review must be at least 5 characters")
+    .max(2000, "Review cannot exceed 2000 characters"),
+});
+
+export type UpdateProductReviewInput = z.infer<typeof UpdateProductReviewSchema>;
+
+

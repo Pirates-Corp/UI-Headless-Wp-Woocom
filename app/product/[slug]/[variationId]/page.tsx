@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProduct, getVariationData } from "@/lib/woocommerce/api";
+import { getProduct, getVariationData, getProductReviewsFromServer } from "@/lib/woocommerce/api";
 import { stripHtml } from "@/lib/utils/format";
 import { ProductPageLayout } from "@/components/product/product-page-layout";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ slug: string; variationId: string }>;
@@ -49,14 +50,25 @@ export default async function ProductVariationPage({ params }: Props) {
     notFound();
   }
 
-  const variationData = await getVariationData(product.id, vid);
+  const matchedVar = product.variations.find((v) => v.id === vid);
+  const [variationData, reviews] = await Promise.all([
+    matchedVar?.prices ? Promise.resolve(null) : getVariationData(product.id, vid),
+    getProductReviewsFromServer({ productId: product.id }),
+  ]);
+
+  const prices = matchedVar?.prices || variationData?.prices || undefined;
+  const inStock = matchedVar?.is_in_stock ?? variationData?.is_in_stock ?? product.is_in_stock;
+  const image = matchedVar?.image || variationData?.image || null;
 
   return (
     <ProductPageLayout
       product={product}
       initialVariationId={vid}
-      initialVariationPrices={variationData?.prices ?? undefined}
-      initialVariationInStock={variationData?.is_in_stock ?? product.is_in_stock}
+      initialVariationPrices={prices}
+      initialVariationInStock={inStock}
+      initialVariationImage={image}
+      reviews={reviews}
     />
   );
 }
+

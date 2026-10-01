@@ -7,6 +7,18 @@ import { getCurrencySettings, getCurrencySymbol } from "@/lib/woocommerce/api";
 import type { CurrencySettings } from "@/lib/woocommerce/types";
 import { decodeHtml } from "@/lib/utils/format";
 
+export interface CustomerOrderLineItem {
+  id: number;
+  productId: number;
+  variationId?: number;
+  name: string;
+  quantity: number;
+  total: string;
+  price: number;
+  sku?: string;
+  image?: string;
+}
+
 export interface CustomerOrderSummary {
   id: number;
   number: string;
@@ -20,25 +32,27 @@ export interface CustomerOrderSummary {
   currencyMinorUnit: number;
   itemCount: number;
   paymentMethodTitle: string;
-  lineItems: {
-    id: number;
-    name: string;
-    quantity: number;
-    total: string;
-    price: number;
-  }[];
+  lineItems: CustomerOrderLineItem[];
 }
 
 interface RawLineItem {
   id?: number;
+  product_id?: number;
+  variation_id?: number;
   name?: string;
   quantity?: number;
   total?: string;
   price?: number;
+  sku?: string;
+  image?: {
+    id?: number | string;
+    src?: string;
+  };
 }
 
 interface RawOrder {
   id: number;
+  customer_id?: number;
   number?: string;
   status?: string;
   date_created?: string;
@@ -88,7 +102,7 @@ export async function getCustomerOrdersAction(): Promise<{
 
     const orderMap = new Map<number, RawOrder>();
 
-    // 1. Fetch orders by customer ID if logged in
+    // 1. Primary source: Fetch orders by customer ID if logged in
     if (user.id && Number(user.id) > 0) {
       try {
         const idUrl = new URL(baseUrl);
@@ -111,7 +125,11 @@ export async function getCustomerOrdersAction(): Promise<{
       }
     }
 
-    // 2. Fetch orders by user email (finds all guest orders placed with this email)
+    // 2. Fallback: Fetch legacy guest orders matching the account email.
+    // Note: This fallback exists only for legacy guest orders placed prior to customer_id assignment
+    // and can be removed once old orders are reassigned.
+    // Only accepts orders where customer_id === 0 (true guest orders) AND billing email equals account email.
+    // Skips any order whose customer_id belongs to a different non-zero user.
     if (user.email) {
       try {
         const emailUrl = new URL(baseUrl);
@@ -124,10 +142,21 @@ export async function getCustomerOrdersAction(): Promise<{
         if (emailRes.ok) {
           const emailData = (await emailRes.json().catch(() => [])) as RawOrder[];
           if (Array.isArray(emailData)) {
+            const userEmailLower = user.email.toLowerCase().trim();
             for (const o of emailData) {
               if (o?.id) {
+                // If already captured by primary customer query, skip
+                if (orderMap.has(o.id)) continue;
+
+                const orderCustomerId =
+                  typeof o.customer_id === "number"
+                    ? o.customer_id
+                    : Number(o.customer_id ?? 0);
                 const billingEmail = o.billing?.email?.toLowerCase().trim();
-                if (!billingEmail || billingEmail === user.email.toLowerCase().trim()) {
+
+                // Tightened fallback: accept ONLY true guest orders (customer_id === 0)
+                // where the billing email equals the authenticated account email.
+                if (orderCustomerId === 0 && billingEmail === userEmailLower) {
                   orderMap.set(o.id, o);
                 }
               }
@@ -150,7 +179,7 @@ export async function getCustomerOrdersAction(): Promise<{
     });
 
     const storeCurrency = await getCurrencySettings();
-    const orders = formatOrders(combinedRawOrders, storeCurrency, user.email);
+    const orders = formatOrders(combinedRawOrders, storeCurrency);
     return {
       success: true,
       orders,
@@ -193,55 +222,51 @@ export async function getOrderTrackingAction(orderId: number): Promise<{
 
 function formatOrders(
   rawOrders: RawOrder[],
-  storeCurrency: CurrencySettings,
-  userEmail?: string
+  storeCurrency: CurrencySettings
 ): CustomerOrderSummary[] {
-  return rawOrders
-    .filter((order) => {
-      // Additional safety filter by email if present
-      if (!userEmail) return true;
-      const billingEmail = order.billing?.email?.toLowerCase();
-      return !billingEmail || billingEmail === userEmail.toLowerCase();
-    })
-    .map((order) => {
-      const lineItems = Array.isArray(order.line_items)
-        ? order.line_items.map((item) => ({
-            id: item.id || 0,
-            name: item.name || "Item",
-            quantity: item.quantity || 1,
-            total: item.total || "0",
-            price: item.price || 0,
-          }))
-        : [];
+  return rawOrders.map((order) => {
+    const lineItems: CustomerOrderLineItem[] = Array.isArray(order.line_items)
+      ? order.line_items.map((item) => ({
+          id: item.id || 0,
+          productId: item.product_id || item.id || 0,
+          variationId: item.variation_id || undefined,
+          name: item.name || "Item",
+          quantity: item.quantity || 1,
+          total: item.total || "0",
+          price: item.price || 0,
+          sku: item.sku || undefined,
+          image: item.image?.src || undefined,
+        }))
+      : [];
 
-      const itemCount = lineItems.reduce((sum, item) => sum + item.quantity, 0);
-      const currencyCode = order.currency || storeCurrency.code || "INR";
-      const rawSymbol = order.currency_symbol || getCurrencySymbol(currencyCode) || storeCurrency.symbol || "₹";
-      const currencySymbol = decodeHtml(rawSymbol);
+    const itemCount = lineItems.reduce((sum, item) => sum + item.quantity, 0);
+    const currencyCode = order.currency || storeCurrency.code || "INR";
+    const rawSymbol = order.currency_symbol || getCurrencySymbol(currencyCode) || storeCurrency.symbol || "₹";
+    const currencySymbol = decodeHtml(rawSymbol);
 
-      const currencyPrefix =
-        order.currency && order.currency !== storeCurrency.code
-          ? currencySymbol
-          : storeCurrency.prefix || currencySymbol;
-      const currencySuffix =
-        order.currency && order.currency !== storeCurrency.code
-          ? ""
-          : storeCurrency.suffix || "";
+    const currencyPrefix =
+      order.currency && order.currency !== storeCurrency.code
+        ? currencySymbol
+        : storeCurrency.prefix || currencySymbol;
+    const currencySuffix =
+      order.currency && order.currency !== storeCurrency.code
+        ? ""
+        : storeCurrency.suffix || "";
 
-      return {
-        id: order.id,
-        number: String(order.number || order.id),
-        status: order.status || "pending",
-        dateCreated: order.date_created || order.date_created_gmt || "",
-        total: order.total || "0",
-        currency: currencyCode,
-        currencySymbol,
-        currencyPrefix,
-        currencySuffix,
-        currencyMinorUnit: storeCurrency.minor_unit ?? 2,
-        itemCount,
-        paymentMethodTitle: order.payment_method_title || order.payment_method || "Online",
-        lineItems,
-      };
-    });
+    return {
+      id: order.id,
+      number: String(order.number || order.id),
+      status: order.status || "pending",
+      dateCreated: order.date_created || order.date_created_gmt || "",
+      total: order.total || "0",
+      currency: currencyCode,
+      currencySymbol,
+      currencyPrefix,
+      currencySuffix,
+      currencyMinorUnit: storeCurrency.minor_unit ?? 2,
+      itemCount,
+      paymentMethodTitle: order.payment_method_title || order.payment_method || "Online",
+      lineItems,
+    };
+  });
 }
