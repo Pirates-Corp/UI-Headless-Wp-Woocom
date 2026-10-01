@@ -50,7 +50,11 @@ export const ShippingSchema = z.object({
 });
 
 export const SavedAddressInputSchema = z.object({
-  label: z.string().max(100).default("Home"),
+  label: z
+    .string()
+    .max(100)
+    .default("Home")
+    .transform((val) => val.trim() || "Home"),
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   company: z.string().default(""),

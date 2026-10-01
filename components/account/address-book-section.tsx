@@ -182,10 +182,21 @@ export function AddressBookSection() {
       return;
     }
 
+    const payload = {
+      ...currentAddress,
+      label: currentAddress.label?.trim() || "Home",
+      company: currentAddress.company || "",
+      phone: currentAddress.phone || "",
+      address_2: currentAddress.address_2 || "",
+      state: currentAddress.state || "",
+      country: currentAddress.country || getDefaultCountry(),
+      is_default: Boolean(currentAddress.is_default),
+    };
+
     setIsSubmitting(true);
     try {
       if (isNew) {
-        const res = await createAddressAction(currentAddress);
+        const res = await createAddressAction(payload);
         if (res.ok && res.data) {
           setAddressBook(res.data);
           toast.success("Address added successfully");
@@ -194,7 +205,7 @@ export function AddressBookSection() {
           toast.error(res.error || "Failed to save address");
         }
       } else if (currentAddress.id) {
-        const res = await updateAddressAction(currentAddress.id, currentAddress);
+        const res = await updateAddressAction(currentAddress.id, payload);
         if (res.ok && res.data) {
           setAddressBook(res.data);
           toast.success("Address updated successfully");
@@ -472,7 +483,7 @@ export function AddressBookSection() {
                 Address Label
               </label>
               <Input
-                value={currentAddress.label || "Home"}
+                value={currentAddress.label ?? ""}
                 onChange={(e) =>
                   setCurrentAddress((prev) => ({ ...prev, label: e.target.value }))
                 }
@@ -486,7 +497,7 @@ export function AddressBookSection() {
               </label>
               <Input
                 type="tel"
-                value={currentAddress.phone || ""}
+                value={currentAddress.phone ?? ""}
                 onChange={(e) =>
                   setCurrentAddress((prev) => ({ ...prev, phone: e.target.value }))
                 }
@@ -559,7 +570,7 @@ export function AddressBookSection() {
                 Address Label
               </label>
               <Input
-                value={currentAddress.label || "Home"}
+                value={currentAddress.label ?? ""}
                 onChange={(e) =>
                   setCurrentAddress((prev) => ({ ...prev, label: e.target.value }))
                 }
@@ -573,7 +584,7 @@ export function AddressBookSection() {
               </label>
               <Input
                 type="tel"
-                value={currentAddress.phone || ""}
+                value={currentAddress.phone ?? ""}
                 onChange={(e) =>
                   setCurrentAddress((prev) => ({ ...prev, phone: e.target.value }))
                 }
