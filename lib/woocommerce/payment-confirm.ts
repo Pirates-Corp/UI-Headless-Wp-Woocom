@@ -49,7 +49,7 @@ function getBaseUrl(): string {
 function getPaymentAuthKey(): string {
   const key = process.env.MYAPP_PAYMENT_AUTH_KEY;
   if (!key) {
-    throw new Error("MYAPP_PAYMENT_AUTH_KEY environment variable is not configured");
+    throw new PaymentBackendError("MYAPP_PAYMENT_AUTH_KEY environment variable is not configured");
   }
   return key;
 }
