@@ -100,3 +100,37 @@ export function formatCartError(raw: string, fallback = "An unexpected error occ
   return cleaned || fallback;
 }
 
+const SHORT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * Deterministic date formatter safe for Next.js SSR hydration across all client locales.
+ * Formats dates consistently as "MMM D, YYYY" (e.g. "Sep 30, 2026").
+ */
+export function formatDate(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return "";
+  const d = typeof dateInput === "object" && dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+
+  if (typeof dateInput === "string") {
+    const match = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = match[1];
+      const monthIndex = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      if (monthIndex >= 0 && monthIndex < 12 && !isNaN(day)) {
+        return `${SHORT_MONTHS[monthIndex]} ${day}, ${year}`;
+      }
+    }
+  }
+
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+

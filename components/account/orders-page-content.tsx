@@ -36,6 +36,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/defaultbutton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/utils/format";
 
 function StatusBadge({ status }: { status: string }) {
   const normalized = status.toLowerCase();
@@ -312,13 +313,7 @@ export function OrdersPageContent() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {order.dateCreated
-                            ? new Date(order.dateCreated).toLocaleDateString(undefined, {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
-                            : "—"}
+                          {order.dateCreated ? formatDate(order.dateCreated) : "—"}
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">

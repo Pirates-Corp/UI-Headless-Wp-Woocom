@@ -181,6 +181,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (typeof window !== "undefined") {
         localStorage.removeItem("cart-store");
         localStorage.removeItem("cart-nonce-store");
+        localStorage.removeItem("checkout-store");
       }
       return result;
     } catch {
@@ -193,6 +194,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (typeof window !== "undefined") {
         localStorage.removeItem("cart-store");
         localStorage.removeItem("cart-nonce-store");
+        localStorage.removeItem("checkout-store");
       }
       return {
         success: true,

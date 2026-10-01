@@ -452,6 +452,29 @@ export interface BillingAddress {
   phone: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  label: string;
+  first_name: string;
+  last_name: string;
+  company?: string;
+  phone?: string;
+  address_1: string;
+  address_2?: string;
+  city: string;
+  state?: string;
+  postcode: string;
+  country: string;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AddressBook {
+  addresses: SavedAddress[];
+  default_id: string | null;
+}
+
 export interface ShippingAddress {
   first_name: string;
   last_name: string;

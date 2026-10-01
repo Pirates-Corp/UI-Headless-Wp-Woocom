@@ -14,6 +14,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/utils/format";
 
 interface ProductReviewsProps {
   productId: number;
@@ -165,13 +166,7 @@ export function ProductReviews({
               .slice(0, 2)
               .toUpperCase();
 
-            const dateStr = review.date_created
-              ? new Date(review.date_created).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })
-              : "Recent";
+            const dateStr = formatDate(review.date_created) || "Recent";
 
             // Clean review content from raw HTML tags
             const cleanContent = review.review
