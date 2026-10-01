@@ -49,6 +49,33 @@ export const ShippingSchema = z.object({
     .default(""),
 });
 
+export const SavedAddressInputSchema = z.object({
+  label: z
+    .string()
+    .max(100)
+    .default("Home")
+    .transform((val) => val.trim() || "Home"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  company: z.string().default(""),
+  phone: z.string().default(""),
+  address_1: z.string().min(1, "Address is required"),
+  address_2: z.string().default(""),
+  city: z.string().min(1, "City is required"),
+  state: z.string().default(""),
+  postcode: z
+    .string()
+    .min(1, "Postcode is required")
+    .regex(PostcodeRegex, "Postcode must be exactly 6 digits"),
+  country: z
+    .string()
+    .min(2, "Country is required")
+    .refine((val) => isCountryAllowed(val), {
+      message: "Selected country is not allowed for checkout",
+    }),
+  is_default: z.boolean().default(false),
+});
+
 /**
  * Loose address schema used for shipping estimate updates — all fields optional
  * strings, no field can exceed 255 characters to prevent oversized payloads.
@@ -219,3 +246,49 @@ export const RazorpayVerifySchema = z.object({
   /** Customer billing email for order confirmation redirect */
   billing_email: z.string().email().optional(),
 });
+
+// ── Product Review Schema ───────────────────────────────────────────────────
+
+export const CreateProductReviewSchema = z.object({
+  productId: z.number().int().positive("A valid product ID is required"),
+  rating: z
+    .number()
+    .int()
+    .min(1, "Please select a rating between 1 and 5 stars")
+    .max(5, "Rating cannot exceed 5 stars"),
+  review: z
+    .string()
+    .trim()
+    .min(5, "Review must be at least 5 characters")
+    .max(2000, "Review cannot exceed 2000 characters"),
+  reviewer: z
+    .string()
+    .trim()
+    .min(1, "Reviewer name is required")
+    .max(100, "Name is too long"),
+  reviewerEmail: z
+    .string()
+    .trim()
+    .email("A valid email address is required"),
+});
+
+export type CreateProductReviewInput = z.infer<typeof CreateProductReviewSchema>;
+
+export const UpdateProductReviewSchema = z.object({
+  reviewId: z.number().int().positive("A valid review ID is required"),
+  productId: z.number().int().positive("A valid product ID is required"),
+  rating: z
+    .number()
+    .int()
+    .min(1, "Please select a rating between 1 and 5 stars")
+    .max(5, "Rating cannot exceed 5 stars"),
+  review: z
+    .string()
+    .trim()
+    .min(5, "Review must be at least 5 characters")
+    .max(2000, "Review cannot exceed 2000 characters"),
+});
+
+export type UpdateProductReviewInput = z.infer<typeof UpdateProductReviewSchema>;
+
+

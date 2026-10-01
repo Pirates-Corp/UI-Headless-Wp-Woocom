@@ -1,6 +1,11 @@
 "use server";
 
-import { createWooOrderOnServer, checkoutOnServer } from "@/lib/woocommerce/api";
+import {
+  createWooOrderOnServer,
+  checkoutOnServer,
+  assignOrderToCustomer,
+} from "@/lib/woocommerce/api";
+import { getSessionUser } from "@/lib/auth/session";
 import { createRazorpayOrder } from "@/lib/razorpay-server";
 import type { BillingAddress, ShippingAddress, WooCart } from "@/lib/woocommerce/types";
 
@@ -40,6 +45,11 @@ export async function createRazorpayCheckoutOrder(
   let orderId: number | undefined;
   let orderKey: string | undefined;
 
+  // Derive customer ID securely from the server session (never from client args)
+  const sessionUser = await getSessionUser();
+  const sessionCustomerId = sessionUser?.id ? Number(sessionUser.id) : 0;
+  const customerId = Number.isFinite(sessionCustomerId) && sessionCustomerId > 0 ? sessionCustomerId : 0;
+
   // 1. First attempt: Create WC order via REST API v3 (status: pending)
   try {
     const selectedShipping = cart?.shipping_rates
@@ -77,6 +87,7 @@ export async function createRazorpayCheckoutOrder(
       payment_method_title: "Razorpay",
       status: "pending",
       set_paid: false,
+      customer_id: customerId > 0 ? customerId : undefined,
       billing: billing as unknown as Record<string, string>,
       shipping: shipping as unknown as Record<string, string>,
       line_items: orderLineItems,
@@ -117,6 +128,10 @@ export async function createRazorpayCheckoutOrder(
     const wcOrder = (await wcRes.json()) as { order_id: number; order_key: string };
     orderId = wcOrder.order_id;
     orderKey = wcOrder.order_key;
+
+    if (customerId > 0 && orderId) {
+      await assignOrderToCustomer(orderId, customerId);
+    }
   }
 
   // 2. Calculate total amount (prefer explicit final total from cart if provided)

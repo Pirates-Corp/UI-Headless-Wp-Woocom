@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProduct, getProducts, getVariationData } from "@/lib/woocommerce/api";
+import { getProduct, getProducts, getVariationData, getProductReviewsFromServer } from "@/lib/woocommerce/api";
 import type { WooProduct } from "@/lib/woocommerce/types";
 import { sortTerms } from "@/lib/utils/product";
 import { stripHtml } from "@/lib/utils/format";
 import { ProductPageLayout } from "@/components/product/product-page-layout";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -65,36 +66,59 @@ async function resolveInitialVariation(product: WooProduct): Promise<{
   variationId: number;
   prices: WooProduct["prices"] | undefined;
   isInStock: boolean;
+  image?: WooProduct["images"][0] | null;
 } | null> {
-  if (!product.is_in_stock || product.type !== "variable" || !product.variations.length) {
+  if (
+    (!product.is_in_stock &&
+      !product.is_on_backorder &&
+      !product.backorders_allowed) ||
+    product.type !== "variable" ||
+    !product.variations.length
+  ) {
     return null;
   }
-  const firstVarAttr = product.attributes.find((a) => a.has_variations);
-  if (!firstVarAttr) return null;
 
-  // Sort terms numerically then alphabetically and map to variations.
-  // variation.attributes[].value may be a slug or a name — match both.
-  const sortedVariations = sortTerms(firstVarAttr.terms)
-    .map((t) =>
-      product.variations.find((v) =>
-        v.attributes.some((a) => a.value === t.slug || a.value === t.name)
-      )
-    )
-    .filter((v): v is NonNullable<typeof v> => v != null);
-
-  if (!sortedVariations.length) return null;
-
-  const varDataAll = await Promise.all(
-    sortedVariations.map((v) => getVariationData(product.id, v.id))
+  // Pick first in-stock or backordered variation, or fallback to the first available variation
+  const inStockVar = product.variations.find(
+    (v) =>
+      v.is_in_stock !== false ||
+      Boolean(v.is_on_backorder) ||
+      Boolean(v.backorders_allowed) ||
+      Boolean(product.is_on_backorder) ||
+      Boolean(product.backorders_allowed),
   );
+  const chosenVar = inStockVar || product.variations[0];
+  if (!chosenVar) return null;
 
-  const inStockIdx = varDataAll.findIndex((d) => d?.is_in_stock === true);
-  const chosenIdx = inStockIdx >= 0 ? inStockIdx : 0;
+  let prices = chosenVar.prices;
+  let isInStock =
+    chosenVar.is_in_stock ??
+    (Boolean(chosenVar.is_on_backorder) ||
+      Boolean(chosenVar.backorders_allowed) ||
+      Boolean(product.is_on_backorder) ||
+      Boolean(product.backorders_allowed) ||
+      true);
+  let image = chosenVar.image ?? null;
+
+  if (!prices) {
+    const varData = await getVariationData(product.id, chosenVar.id);
+    if (varData) {
+      prices = varData.prices ?? undefined;
+      isInStock =
+        varData.is_in_stock ||
+        Boolean(varData.is_on_backorder) ||
+        Boolean(varData.backorders_allowed) ||
+        Boolean(product.is_on_backorder) ||
+        Boolean(product.backorders_allowed);
+      image = varData.image ?? null;
+    }
+  }
 
   return {
-    variationId: sortedVariations[chosenIdx].id,
-    prices: varDataAll[chosenIdx]?.prices ?? undefined,
-    isInStock: varDataAll[chosenIdx]?.is_in_stock ?? false,
+    variationId: chosenVar.id,
+    prices,
+    isInStock,
+    image,
   };
 }
 
@@ -107,7 +131,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const initialVariation = await resolveInitialVariation(product);
+  const [initialVariation, reviews] = await Promise.all([
+    resolveInitialVariation(product),
+    getProductReviewsFromServer({ productId: product.id }),
+  ]);
 
   return (
     <ProductPageLayout
@@ -115,6 +142,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
       initialVariationId={initialVariation?.variationId}
       initialVariationPrices={initialVariation?.prices}
       initialVariationInStock={initialVariation?.isInStock}
+      initialVariationImage={initialVariation?.image}
+      reviews={reviews}
     />
   );
 }

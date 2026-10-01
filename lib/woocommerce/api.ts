@@ -7,8 +7,11 @@ import type {
   CurrencySettings,
   WooCountry,
   WooState,
+  WooProductReview,
   WooTag,
   WooBrand,
+  WooProductVariation,
+  WooImage,
 } from "./types";
 
 const WP_URL = `${process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL}://${process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST}`;
@@ -397,18 +400,22 @@ export async function getCountriesFromServer(): Promise<WooCountry[]> {
  * Convert a REST API v3 product into the Store-API-compatible WooProduct shape
  * that all UI components expect. Prices are converted to minor units.
  */
-function normalizeV3Product(raw: WooV3Product, currency: CurrencySettings): WooProduct {
-  const toMinorUnits = (price: string): string => {
-    if (!price && price !== "0") return "0";
+function normalizeV3Product(
+  raw: WooV3Product,
+  currency: CurrencySettings,
+  v3Variations?: WooV3Variation[]
+): WooProduct {
+  const toMinorUnits = (price: string, fallback = "0"): string => {
+    if (!price && price !== "0") return fallback;
     const num = parseFloat(price);
-    if (isNaN(num)) return "0";
+    if (isNaN(num)) return fallback;
     return String(Math.round(num * Math.pow(10, currency.minor_unit)));
   };
 
   const prices: WooProduct["prices"] = {
-    price: toMinorUnits(raw.price),
-    regular_price: toMinorUnits(raw.regular_price),
-    sale_price: toMinorUnits(raw.sale_price),
+    price: toMinorUnits(raw.price, "0"),
+    regular_price: toMinorUnits(raw.regular_price, toMinorUnits(raw.price, "0")),
+    sale_price: toMinorUnits(raw.sale_price, ""),
     currency_code: currency.code,
     currency_symbol: currency.symbol,
     currency_minor_unit: currency.minor_unit,
@@ -450,19 +457,69 @@ function normalizeV3Product(raw: WooV3Product, currency: CurrencySettings): WooP
     })),
   }));
 
-  // Build variations — v3 only gives IDs, so we create stubs.
-  // Full variation data is fetched separately via getVariationData().
-  const variations = raw.variations.map((varId) => ({
-    id: varId,
-    attributes: [],
-  }));
+  // Build variations — map full variation attributes, prices, stock, and image if provided;
+  // otherwise fallback to ID stubs.
+  const variations: WooProductVariation[] =
+    v3Variations && v3Variations.length > 0
+      ? v3Variations.map((v) => {
+          const normalizedVar = normalizeV3Variation(v, currency, raw);
+          return {
+            id: v.id,
+            attributes: v.attributes.map((va) => ({
+              name: va.name,
+              value: va.option,
+            })),
+            prices: normalizedVar.prices,
+            is_in_stock: normalizedVar.is_in_stock,
+            is_purchasable: normalizedVar.is_purchasable,
+            is_on_backorder: normalizedVar.is_on_backorder,
+            backorders_allowed: normalizedVar.backorders_allowed,
+            stock_quantity: normalizedVar.stock_quantity,
+            low_stock_remaining: normalizedVar.low_stock_remaining,
+            image: normalizedVar.image,
+          };
+        })
+      : raw.variations.map((varId) => ({
+          id: varId,
+          attributes: [],
+        }));
 
-  // Compute low_stock_remaining
+  const backordersAllowed =
+    raw.backorders_allowed === true ||
+    raw.backorders === "notify" ||
+    raw.backorders === "yes";
+
+  const isOnBackorder =
+    raw.stock_status === "onbackorder" ||
+    raw.backordered === true ||
+    (Boolean(raw.manage_stock) &&
+      raw.stock_quantity !== null &&
+      raw.stock_quantity !== undefined &&
+      raw.stock_quantity <= 0 &&
+      backordersAllowed);
+
+  const isProductInStock =
+    raw.purchasable !== false &&
+    (isOnBackorder ||
+      backordersAllowed ||
+      (raw.stock_status === "instock" &&
+        (!raw.manage_stock ||
+          raw.stock_quantity === null ||
+          raw.stock_quantity === undefined ||
+          raw.stock_quantity > 0)));
+
+  // Compute low_stock_remaining: below or equal to 3 or <= low_stock_amount
   const lowStockRemaining =
-    raw.manage_stock && raw.stock_quantity !== null && raw.low_stock_amount !== null
-      ? raw.stock_quantity <= raw.low_stock_amount
-        ? raw.stock_quantity
-        : null
+    !isOnBackorder &&
+    raw.manage_stock &&
+    raw.stock_quantity !== null &&
+    raw.stock_quantity !== undefined &&
+    raw.stock_quantity > 0 &&
+    (raw.stock_quantity <= 3 ||
+      (raw.low_stock_amount !== null &&
+        raw.low_stock_amount !== undefined &&
+        raw.stock_quantity <= raw.low_stock_amount))
+      ? raw.stock_quantity
       : null;
 
   return {
@@ -482,18 +539,21 @@ function normalizeV3Product(raw: WooV3Product, currency: CurrencySettings): WooP
     attributes,
     variations,
     has_options: raw.type === "variable" && raw.attributes.some((a) => a.variation),
-    is_purchasable: raw.purchasable,
-    is_in_stock: raw.stock_status === "instock",
+    is_purchasable: raw.purchasable !== false,
+    is_in_stock: isProductInStock,
+    is_on_backorder: isOnBackorder,
+    backorders_allowed: backordersAllowed,
     on_sale: raw.on_sale,
     average_rating: raw.average_rating,
     review_count: raw.rating_count,
+    stock_quantity: raw.manage_stock && raw.stock_quantity !== null ? raw.stock_quantity : null,
     low_stock_remaining: lowStockRemaining,
     add_to_cart: {
       text: raw.type === "variable" ? "Select options" : "Add to cart",
       description: "",
       url: "",
       minimum: 1,
-      maximum: raw.manage_stock && raw.stock_quantity !== null ? raw.stock_quantity : 9999,
+      maximum: raw.manage_stock && raw.stock_quantity !== null && raw.stock_quantity > 0 ? raw.stock_quantity : 9999,
       multiple_of: 1,
     },
     external_url: raw.external_url,
@@ -508,19 +568,98 @@ function normalizeV3Product(raw: WooV3Product, currency: CurrencySettings): WooP
 function normalizeV3Variation(
   raw: WooV3Variation,
   currency: CurrencySettings,
-): { prices: WooProduct["prices"]; is_in_stock: boolean } {
-  const toMinorUnits = (price: string): string => {
-    if (!price && price !== "0") return "0";
+  parentRaw?: WooV3Product,
+): {
+  prices: WooProduct["prices"];
+  is_in_stock: boolean;
+  is_purchasable: boolean;
+  is_on_backorder: boolean;
+  backorders_allowed: boolean;
+  stock_quantity: number | null;
+  low_stock_remaining: number | null;
+  image: WooImage | null;
+} {
+  const toMinorUnits = (price: string, fallback = "0"): string => {
+    if (!price && price !== "0") return fallback;
     const num = parseFloat(price);
-    if (isNaN(num)) return "0";
+    if (isNaN(num)) return fallback;
     return String(Math.round(num * Math.pow(10, currency.minor_unit)));
   };
 
+  const parentBackordersAllowed = parentRaw
+    ? parentRaw.backorders_allowed === true ||
+      parentRaw.backorders === "notify" ||
+      parentRaw.backorders === "yes"
+    : false;
+
+  const parentIsOnBackorder = parentRaw
+    ? parentRaw.stock_status === "onbackorder" ||
+      parentRaw.backordered === true ||
+      (Boolean(parentRaw.manage_stock) &&
+        parentRaw.stock_quantity !== null &&
+        parentRaw.stock_quantity !== undefined &&
+        parentRaw.stock_quantity <= 0 &&
+        parentBackordersAllowed)
+    : false;
+
+  const backordersAllowed =
+    raw.backorders_allowed === true ||
+    raw.backorders === "notify" ||
+    raw.backorders === "yes" ||
+    (!raw.manage_stock && parentBackordersAllowed);
+
+  const effectiveManageStock = Boolean(raw.manage_stock || (!raw.manage_stock && parentRaw?.manage_stock));
+  const effectiveStockQuantity =
+    raw.manage_stock && raw.stock_quantity !== null && raw.stock_quantity !== undefined
+      ? raw.stock_quantity
+      : (!raw.manage_stock && parentRaw?.manage_stock && parentRaw.stock_quantity !== null && parentRaw.stock_quantity !== undefined
+          ? parentRaw.stock_quantity
+          : null);
+
+  const isOnBackorder =
+    raw.stock_status === "onbackorder" ||
+    raw.backordered === true ||
+    parentIsOnBackorder ||
+    (effectiveManageStock &&
+      effectiveStockQuantity !== null &&
+      effectiveStockQuantity <= 0 &&
+      backordersAllowed);
+
+  const isInStock =
+    raw.purchasable !== false &&
+    (isOnBackorder ||
+      backordersAllowed ||
+      (raw.stock_status === "instock" &&
+        (!effectiveManageStock ||
+          effectiveStockQuantity === null ||
+          effectiveStockQuantity > 0)) ||
+      (!raw.manage_stock && parentRaw
+        ? (parentIsOnBackorder || parentBackordersAllowed || parentRaw.stock_status === "instock")
+        : false));
+
+  const stockQuantity = effectiveStockQuantity;
+
+  const lowStockThreshold =
+    raw.low_stock_amount !== null && raw.low_stock_amount !== undefined
+      ? raw.low_stock_amount
+      : (parentRaw?.low_stock_amount !== null && parentRaw?.low_stock_amount !== undefined
+          ? parentRaw.low_stock_amount
+          : 3);
+
+  const lowStockRemaining =
+    !isOnBackorder &&
+    effectiveManageStock &&
+    stockQuantity !== null &&
+    stockQuantity > 0 &&
+    (stockQuantity <= 3 || stockQuantity <= lowStockThreshold)
+      ? stockQuantity
+      : null;
+
   return {
     prices: {
-      price: toMinorUnits(raw.price),
-      regular_price: toMinorUnits(raw.regular_price),
-      sale_price: toMinorUnits(raw.sale_price),
+      price: toMinorUnits(raw.price, "0"),
+      regular_price: toMinorUnits(raw.regular_price, toMinorUnits(raw.price, "0")),
+      sale_price: toMinorUnits(raw.sale_price, ""),
       currency_code: currency.code,
       currency_symbol: currency.symbol,
       currency_minor_unit: currency.minor_unit,
@@ -530,7 +669,24 @@ function normalizeV3Variation(
       currency_suffix: currency.suffix,
       price_range: null,
     },
-    is_in_stock: raw.stock_status === "instock",
+    is_in_stock: isInStock,
+    is_purchasable: raw.purchasable !== false,
+    is_on_backorder: isOnBackorder,
+    backorders_allowed: backordersAllowed,
+    stock_quantity: stockQuantity,
+    low_stock_remaining: lowStockRemaining,
+    image:
+      raw.image && raw.image.src && raw.image.src.trim() !== ""
+        ? {
+            id: raw.image.id,
+            src: raw.image.src,
+            thumbnail: raw.image.src,
+            srcset: "",
+            sizes: "",
+            name: raw.image.name || "",
+            alt: raw.image.alt || "",
+          }
+        : null,
   };
 }
 
@@ -704,7 +860,7 @@ export async function getProducts(params?: {
 
   const raw = await restApiFetchJson<WooV3Product[]>(
     "/products",
-    { next: { revalidate: 3600 } },
+    { cache: "no-store" },
     searchParams,
   );
 
@@ -745,7 +901,7 @@ export async function getProductsMeta(
 
   const res = await restApiFetch<WooV3Product[]>(
     "/products",
-    { next: { revalidate: 3600 } },
+    { cache: "no-store" },
     searchParams,
   );
 
@@ -761,19 +917,41 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
   const currency = await getCurrencySettings();
 
   // Try to find by slug first
-  const raw = await restApiFetchJson<WooV3Product[]>(
+  let raw: WooV3Product | null = null;
+  const bySlug = await restApiFetchJson<WooV3Product[]>(
     "/products",
-    { next: { revalidate: 3600 } },
+    { cache: "no-store" },
     { slug: idOrSlug },
   );
-  if (raw.length > 0) return normalizeV3Product(raw[0], currency);
+  if (bySlug.length > 0) {
+    raw = bySlug[0];
+  } else {
+    // Fallback: try as numeric ID
+    raw = await restApiFetchJson<WooV3Product>(
+      `/products/${idOrSlug}`,
+      { cache: "no-store" },
+    );
+  }
 
-  // Fallback: try as numeric ID
-  const product = await restApiFetchJson<WooV3Product>(
-    `/products/${idOrSlug}`,
-    { next: { revalidate: 3600 } },
-  );
-  return normalizeV3Product(product, currency);
+  if (!raw) {
+    throw new Error(`Product not found: ${idOrSlug}`);
+  }
+
+  // If variable product, fetch all variation details in parallel
+  let fullVariations: WooV3Variation[] = [];
+  if (raw.type === "variable" && raw.variations && raw.variations.length > 0) {
+    try {
+      fullVariations = await restApiFetchJson<WooV3Variation[]>(
+        `/products/${raw.id}/variations`,
+        { cache: "no-store" },
+        { per_page: "100" },
+      );
+    } catch (err) {
+      console.warn(`[getProduct] Failed to fetch variations for product ${raw.id}:`, err);
+    }
+  }
+
+  return normalizeV3Product(raw, currency, fullVariations);
 }
 
 /**
@@ -787,6 +965,12 @@ export async function getVariationData(
 ): Promise<{
   prices: WooProduct["prices"] | null;
   is_in_stock: boolean;
+  is_purchasable: boolean;
+  is_on_backorder: boolean;
+  backorders_allowed: boolean;
+  stock_quantity: number | null;
+  low_stock_remaining: number | null;
+  image: WooImage | null;
 } | null> {
   try {
     const currency = await getCurrencySettings();
@@ -798,6 +982,12 @@ export async function getVariationData(
     return {
       prices: normalized.prices,
       is_in_stock: normalized.is_in_stock,
+      is_purchasable: normalized.is_purchasable,
+      is_on_backorder: normalized.is_on_backorder,
+      backorders_allowed: normalized.backorders_allowed,
+      stock_quantity: normalized.stock_quantity,
+      low_stock_remaining: normalized.low_stock_remaining,
+      image: normalized.image,
     };
   } catch {
     return null;
@@ -960,6 +1150,7 @@ export async function createWooOrderOnServer(orderData: {
   payment_method_title?: string;
   set_paid?: boolean;
   status?: string;
+  customer_id?: number;
   billing?: Record<string, string>;
   shipping?: Record<string, string>;
   line_items?: Array<{
@@ -992,4 +1183,148 @@ export async function createWooOrderOnServer(orderData: {
   }
   return res;
 }
+
+/**
+ * Server-only helper to assign an existing WooCommerce order to a customer ID via REST API v3.
+ * Used for orders placed via Store API (which creates orders without customer_id) or post-order fallbacks.
+ * Returns true if successful, false otherwise. Never throws.
+ */
+export async function assignOrderToCustomer(
+  orderId: number | string,
+  customerId: number,
+): Promise<boolean> {
+  if (!orderId || !customerId || customerId <= 0) {
+    return false;
+  }
+  try {
+    const res = await restApiFetch(`/orders/${orderId}`, {
+      method: "PUT",
+      body: JSON.stringify({ customer_id: customerId }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn(
+        `[assignOrderToCustomer] Failed to assign order ${orderId} to customer ${customerId} (status ${res.status}): ${body}`,
+      );
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn(
+      `[assignOrderToCustomer] Error assigning order ${orderId} to customer ${customerId}:`,
+      err,
+    );
+    return false;
+  }
+}
+
+// ─── Product Reviews (REST API v3) ──────────────────────────────────────────
+
+/**
+ * Fetch reviews for a specific product or submitted by a specific reviewer email.
+ */
+export async function getProductReviewsFromServer(params?: {
+  productId?: number;
+  reviewerEmail?: string;
+  perPage?: number;
+  page?: number;
+}): Promise<WooProductReview[]> {
+  try {
+    const searchParams: Record<string, string> = {};
+    if (params?.productId) searchParams.product = String(params.productId);
+    if (params?.reviewerEmail) searchParams.reviewer_email = params.reviewerEmail;
+    if (params?.perPage) searchParams.per_page = String(params.perPage);
+    if (params?.page) searchParams.page = String(params.page);
+
+    const reviews = await restApiFetchJson<WooProductReview[]>(
+      "/products/reviews",
+      { cache: "no-store" },
+      searchParams
+    );
+
+    return Array.isArray(reviews) ? reviews : [];
+  } catch (err) {
+    console.warn("[getProductReviewsFromServer] Failed to fetch reviews:", err);
+    return [];
+  }
+}
+
+/**
+ * Create a new product review via WooCommerce REST API v3.
+ */
+export async function createProductReviewOnServer(data: {
+  product_id: number;
+  review: string;
+  reviewer: string;
+  reviewer_email: string;
+  rating: number;
+  verified?: boolean;
+  status?: string;
+}): Promise<WooProductReview> {
+  const res = await restApiFetch("/products/reviews", {
+    method: "POST",
+    body: JSON.stringify({
+      product_id: data.product_id,
+      review: data.review,
+      reviewer: data.reviewer,
+      reviewer_email: data.reviewer_email,
+      rating: data.rating,
+      verified: data.verified ?? true,
+      status: data.status ?? "approved",
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    let errorMsg = `Failed to submit review (${res.status})`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      if (parsed.message) errorMsg = parsed.message;
+    } catch {
+      // keep fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json() as Promise<WooProductReview>;
+}
+
+/**
+ * Update an existing product review via WooCommerce REST API v3.
+ */
+export async function updateProductReviewOnServer(
+  reviewId: number,
+  data: {
+    review?: string;
+    rating?: number;
+  }
+): Promise<WooProductReview> {
+  const body: Record<string, unknown> = {};
+  if (data.review !== undefined) body.review = data.review;
+  if (data.rating !== undefined) body.rating = data.rating;
+
+  const res = await restApiFetch(`/products/reviews/${reviewId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    let errorMsg = `Failed to update review (${res.status})`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      if (parsed.message) errorMsg = parsed.message;
+    } catch {
+      // keep fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json() as Promise<WooProductReview>;
+}
+
+
 

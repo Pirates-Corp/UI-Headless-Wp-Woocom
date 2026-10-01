@@ -1,4 +1,4 @@
-import { formatPrice, formatProductPrice, stripHtml, decodeHtml } from "@/lib/utils/format";
+import { formatPrice, formatProductPrice, stripHtml, decodeHtml, formatDate } from "@/lib/utils/format";
 
 describe("formatPrice", () => {
   it("converts minor-unit integer to decimal display with prefix", () => {
@@ -63,6 +63,30 @@ describe("formatProductPrice", () => {
 
     expect(result.onSale).toBe(false);
   });
+
+  it("marks product as NOT on sale when sale_price is '0' and price equals regular_price", () => {
+    const result = formatProductPrice({
+      ...basePrices,
+      price: "600000",
+      regular_price: "600000",
+      sale_price: "0",
+    });
+
+    expect(result.current).toBe("$6000.00");
+    expect(result.regular).toBe("$6000.00");
+    expect(result.onSale).toBe(false);
+  });
+
+  it("marks product as NOT on sale when regular_price is not greater than price", () => {
+    const result = formatProductPrice({
+      ...basePrices,
+      price: "600000",
+      regular_price: "600000",
+      sale_price: "",
+    });
+
+    expect(result.onSale).toBe(false);
+  });
 });
 
 describe("stripHtml", () => {
@@ -109,4 +133,25 @@ describe("decodeHtml", () => {
     expect(decodeHtml("")).toBe("");
   });
 });
+
+describe("formatDate", () => {
+  it("formats ISO date string deterministically", () => {
+    expect(formatDate("2026-09-30T14:30:00")).toBe("Sep 30, 2026");
+    expect(formatDate("2026-09-30 14:30:00")).toBe("Sep 30, 2026");
+    expect(formatDate("2026-01-05")).toBe("Jan 5, 2026");
+    expect(formatDate("2026-12-25")).toBe("Dec 25, 2026");
+  });
+
+  it("handles Date objects and timestamps", () => {
+    const d = new Date("2026-05-15T00:00:00Z");
+    expect(formatDate(d)).toBe("May 15, 2026");
+  });
+
+  it("returns empty string for null, undefined, or invalid input", () => {
+    expect(formatDate(null)).toBe("");
+    expect(formatDate(undefined)).toBe("");
+    expect(formatDate("invalid-date")).toBe("");
+  });
+});
+
 

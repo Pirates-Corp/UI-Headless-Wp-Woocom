@@ -4,7 +4,9 @@ import { BillingSchema, ShippingSchema } from "@/lib/validation/schemas";
 import { checkout } from "./cart";
 import { createStripeOrder } from "./stripe-checkout";
 import { createRazorpayCheckoutOrder } from "./razorpay-checkout";
-import type { WooCart } from "@/lib/woocommerce/types";
+import { createAddressAction, saveBillingAction } from "./address";
+import { getEffectiveAddresses } from "@/lib/checkout/effective-addresses";
+import type { BillingAddress, ShippingAddress, WooCart } from "@/lib/woocommerce/types";
 
 export type CheckoutActionState =
   | null
@@ -15,7 +17,7 @@ export type CheckoutActionState =
 
 /**
  * Server action for the checkout form.
- * Billing/shipping/cart state is passed as JSON in hidden form inputs.
+ * Billing/shipping/cart state is passed in FormData.
  */
 export async function checkoutAction(
   _prevState: CheckoutActionState,
@@ -25,15 +27,35 @@ export async function checkoutAction(
   let cart: WooCart;
   let paymentMethod: string;
   let cartToken: string | undefined;
-  const sameAsShipping = formData.get("sameAsShipping") === "1";
+
+  const billingSameAsShipping = formData.has("billingSameAsShipping")
+    ? formData.get("billingSameAsShipping") === "1" || formData.get("billingSameAsShipping") === "true"
+    : formData.has("sameAsShipping")
+    ? formData.get("sameAsShipping") === "1"
+    : true;
+
   const isBuyNow = formData.get("isBuyNow") === "1" || formData.get("isBuyNow") === "true";
 
-  if (formData.get("policyAgreement") !== "on") {
-    return { type: "error", message: "Please agree to the Terms & Conditions and Privacy Policy." };
-  }
-  const g = (key: string) => String(formData.get(key) ?? "");
+  const g = (key: string) => String(formData.get(key) ?? "").trim();
 
-  const rawBilling = {
+  const rawContact = {
+    email: g("billing_email") || g("email"),
+    phone: g("billing_phone") || g("phone") || g("shipping_phone"),
+  };
+
+  const rawDelivery: ShippingAddress = {
+    first_name: g("shipping_first_name") || (billingSameAsShipping ? g("billing_first_name") : ""),
+    last_name: g("shipping_last_name") || (billingSameAsShipping ? g("billing_last_name") : ""),
+    company: g("shipping_company") || (billingSameAsShipping ? g("billing_company") : ""),
+    address_1: g("shipping_address_1") || (billingSameAsShipping ? g("billing_address_1") : ""),
+    address_2: g("shipping_address_2") || (billingSameAsShipping ? g("billing_address_2") : ""),
+    city: g("shipping_city") || (billingSameAsShipping ? g("billing_city") : ""),
+    state: g("shipping_state") || (billingSameAsShipping ? g("billing_state") : ""),
+    postcode: g("shipping_postcode") || (billingSameAsShipping ? g("billing_postcode") : ""),
+    country: g("shipping_country") || (billingSameAsShipping ? g("billing_country") : ""),
+  };
+
+  const rawBillingInput: BillingAddress = {
     first_name: g("billing_first_name"),
     last_name: g("billing_last_name"),
     company: g("billing_company"),
@@ -43,33 +65,15 @@ export async function checkoutAction(
     state: g("billing_state"),
     postcode: g("billing_postcode"),
     country: g("billing_country"),
-    email: g("billing_email"),
-    phone: g("billing_phone"),
+    email: rawContact.email,
+    phone: rawContact.phone,
   };
 
-  const rawShipping = sameAsShipping
-    ? {
-        first_name: rawBilling.first_name,
-        last_name: rawBilling.last_name,
-        company: rawBilling.company,
-        address_1: rawBilling.address_1,
-        address_2: rawBilling.address_2,
-        city: rawBilling.city,
-        state: rawBilling.state,
-        postcode: rawBilling.postcode,
-        country: rawBilling.country,
-      }
-    : {
-        first_name: g("shipping_first_name"),
-        last_name: g("shipping_last_name"),
-        company: g("shipping_company"),
-        address_1: g("shipping_address_1"),
-        address_2: g("shipping_address_2"),
-        city: g("shipping_city"),
-        state: g("shipping_state"),
-        postcode: g("shipping_postcode"),
-        country: g("shipping_country"),
-      };
+  const { billing: effectiveBilling, shipping: effectiveShipping } = getEffectiveAddresses({
+    shipping: rawDelivery,
+    billing: rawBillingInput,
+    billingSameAsShipping,
+  });
 
   try {
     cart = JSON.parse(formData.get("cart") as string) as WooCart;
@@ -82,16 +86,16 @@ export async function checkoutAction(
   const nonce = (formData.get("nonce") as string) || undefined;
 
   // ── Validate with Zod ────────────────────────────────────────────────────
-  const billingResult = BillingSchema.safeParse(rawBilling);
-  if (!billingResult.success) {
-    const first = billingResult.error.issues[0];
-    return { type: "error", message: first?.message ?? "Invalid billing details." };
-  }
-
-  const shippingResult = ShippingSchema.safeParse(rawShipping);
+  const shippingResult = ShippingSchema.safeParse(effectiveShipping);
   if (!shippingResult.success) {
     const first = shippingResult.error.issues[0];
     return { type: "error", message: first?.message ?? "Invalid shipping details." };
+  }
+
+  const billingResult = BillingSchema.safeParse(effectiveBilling);
+  if (!billingResult.success) {
+    const first = billingResult.error.issues[0];
+    return { type: "error", message: first?.message ?? "Invalid billing details." };
   }
 
   const billing = billingResult.data;
@@ -102,6 +106,38 @@ export async function checkoutAction(
 
   if (!isFreeOrder && !paymentMethod) {
     return { type: "error", message: "Please select a payment method." };
+  }
+
+  // ── Non-blocking Post-Order Address Book Save ─────────────────────────────
+  async function saveAddressAfterOrder() {
+    const saveAddress = formData.get("saveAddress") === "1" || formData.get("saveAddress") === "true";
+    const makeDefault = formData.get("makeDefault") === "1" || formData.get("makeDefault") === "true";
+    const label = String(formData.get("addressLabel") || "Home");
+
+    if (!saveAddress) return;
+
+    try {
+      await createAddressAction({
+        label,
+        first_name: shipping.first_name,
+        last_name: shipping.last_name,
+        company: shipping.company || "",
+        phone: billing.phone || "",
+        address_1: shipping.address_1,
+        address_2: shipping.address_2 || "",
+        city: shipping.city,
+        state: shipping.state || "",
+        postcode: shipping.postcode,
+        country: shipping.country,
+        is_default: makeDefault,
+      });
+
+      if (!billingSameAsShipping) {
+        await saveBillingAction(billing);
+      }
+    } catch (err) {
+      console.warn("[checkoutAction] Post-order address save failed non-critically:", err);
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -141,6 +177,8 @@ export async function checkoutAction(
       console.error("[checkoutAction] Free order checkout failed:", result.error);
       return { type: "error", message: extractWooMessage(result.error) };
     }
+
+    await saveAddressAfterOrder();
 
     return {
       type: "success",
@@ -194,6 +232,8 @@ export async function checkoutAction(
       return { type: "error", message: extractWooMessage(result.error) };
     }
 
+    await saveAddressAfterOrder();
+
     return { type: "stripe_redirect", url: result.sessionUrl };
   }
 
@@ -243,6 +283,8 @@ export async function checkoutAction(
       return { type: "error", message: extractWooMessage(result.error) };
     }
 
+    await saveAddressAfterOrder();
+
     return {
       type: "razorpay_create",
       razorpayOrderId: result.razorpayOrderId,
@@ -271,6 +313,8 @@ export async function checkoutAction(
     console.error("[checkoutAction] WooCommerce checkout failed:", result.error);
     return { type: "error", message: extractWooMessage(result.error) };
   }
+
+  await saveAddressAfterOrder();
 
   return {
     type: "success",
