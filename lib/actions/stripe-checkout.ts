@@ -4,9 +4,11 @@ import {
   createWooOrderOnServer,
   checkoutOnServer,
   assignOrderToCustomer,
+  getWooOrderForPayment,
 } from "@/lib/woocommerce/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { createStripeCheckoutSession } from "@/lib/stripe-server";
+import { toMinorUnits } from "@/lib/utils";
 import type { BillingAddress, ShippingAddress, WooCart } from "@/lib/woocommerce/types";
 
 export interface StripeLineItem {
@@ -128,7 +130,26 @@ export async function createStripeOrder(
     }
   }
 
-  // 2. Create Stripe Checkout Session
+  if (!orderId || !orderKey) {
+    return { error: "Failed to create WooCommerce order." };
+  }
+
+  // 2. Fetch authoritative order details from WooCommerce to get server-verified total & currency
+  const wcOrderData = await getWooOrderForPayment(orderId);
+  if (!wcOrderData || !wcOrderData.total) {
+    console.error("[createStripeOrder] Failed to fetch authoritative order details for WC order:", orderId);
+    return { error: "Failed to fetch authoritative order details for payment." };
+  }
+
+  const currency = (wcOrderData.currency || "USD").toUpperCase();
+  const totalAmount = toMinorUnits(wcOrderData.total, currency);
+
+  if (totalAmount <= 0) {
+    console.error("[createStripeOrder] Authoritative order total is zero or invalid:", wcOrderData.total);
+    return { error: "Order total is zero or invalid." };
+  }
+
+  // 3. Create Stripe Checkout Session with single authoritative line item: Order #<id>
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ??
     `http://localhost:${process.env.PORT ?? 3000}`;
@@ -139,14 +160,16 @@ export async function createStripeOrder(
   try {
     session = await createStripeCheckoutSession({
       orderId,
-      lineItems: lineItems.map((item) => ({
-        price_data: {
-          currency: item.currency.toLowerCase(),
-          product_data: { name: item.name },
-          unit_amount: item.unitAmount,
+      lineItems: [
+        {
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: { name: `Order #${orderId}` },
+            unit_amount: totalAmount,
+          },
+          quantity: 1,
         },
-        quantity: item.quantity,
-      })),
+      ],
       customerEmail: billing.email,
       successUrl: `${appUrl}/order-confirmation?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}&order_key=${encodeURIComponent(orderKey)}&billing_email=${encodeURIComponent(billing.email)}${buyNowParam}`,
       cancelUrl: `${appUrl}/checkout${isBuyNow ? "?buy_now=1" : ""}`,

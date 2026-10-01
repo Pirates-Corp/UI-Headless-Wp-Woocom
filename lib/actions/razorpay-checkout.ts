@@ -4,9 +4,11 @@ import {
   createWooOrderOnServer,
   checkoutOnServer,
   assignOrderToCustomer,
+  getWooOrderForPayment,
 } from "@/lib/woocommerce/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { createRazorpayOrder } from "@/lib/razorpay-server";
+import { toMinorUnits } from "@/lib/utils";
 import type { BillingAddress, ShippingAddress, WooCart } from "@/lib/woocommerce/types";
 
 export interface RazorpayLineItem {
@@ -38,7 +40,6 @@ export async function createRazorpayCheckoutOrder(
   paymentMethod: string,
   lineItems: RazorpayLineItem[],
   cartToken?: string,
-  totalAmountOverride?: number,
   nonce?: string,
   cart?: WooCart
 ): Promise<CreateRazorpayOrderResult | { error: string }> {
@@ -134,17 +135,26 @@ export async function createRazorpayCheckoutOrder(
     }
   }
 
-  // 2. Calculate total amount (prefer explicit final total from cart if provided)
-  const totalAmount =
-    totalAmountOverride !== undefined && totalAmountOverride > 0
-      ? totalAmountOverride
-      : lineItems.reduce(
-          (sum, item) => sum + item.unitAmount * item.quantity,
-          0
-        );
-  const currency = lineItems[0]?.currency?.toUpperCase() ?? "INR";
+  if (!orderId || !orderKey) {
+    return { error: "Failed to create WooCommerce order." };
+  }
 
-  // 3. Create Razorpay Order
+  // 2. Fetch authoritative order details from WooCommerce to get server-verified total & currency
+  const wcOrderData = await getWooOrderForPayment(orderId);
+  if (!wcOrderData || !wcOrderData.total) {
+    console.error("[createRazorpayCheckoutOrder] Failed to fetch authoritative order details for WC order:", orderId);
+    return { error: "Failed to fetch authoritative order details for payment." };
+  }
+
+  const currency = (wcOrderData.currency || "INR").toUpperCase();
+  const totalAmount = toMinorUnits(wcOrderData.total, currency);
+
+  if (totalAmount <= 0) {
+    console.error("[createRazorpayCheckoutOrder] Authoritative order total is zero or invalid:", wcOrderData.total);
+    return { error: "Order total is zero or invalid." };
+  }
+
+  // 3. Create Razorpay Order with server-authoritative amount
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   if (!keyId) {
     return { error: "Razorpay key_id is not configured." };

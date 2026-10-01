@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRazorpayWebhookSignature } from "@/lib/razorpay-server";
-import { updateWooOrderStatus } from "@/lib/stripe-server";
+import {
+  verifyRazorpayWebhookSignature,
+  fetchRazorpayOrder,
+} from "@/lib/razorpay-server";
+import {
+  confirmPayment,
+  updatePaymentStatus,
+  PaymentBackendError,
+} from "@/lib/woocommerce/payment-confirm";
 
 export const dynamic = "force-dynamic";
-
-/**
- * Maps each relevant Razorpay webhook event to the WC order status it should produce.
- * These serve as asynchronous backup — the primary verification happens
- * synchronously in /api/razorpay/verify after the checkout modal callback.
- */
-const EVENT_TO_WC_STATUS: Record<string, string> = {
-  // Payment was authorized (manual capture flow)
-  "payment.authorized": "on-hold",
-  // Payment was captured (auto-capture or manual capture)
-  "payment.captured": "processing",
-  // Payment failed
-  "payment.failed": "failed",
-  // Order is fully paid (backup confirmation)
-  "order.paid": "processing",
-};
 
 interface RazorpayWebhookPayload {
   event: string;
@@ -27,6 +18,8 @@ interface RazorpayWebhookPayload {
       entity: {
         id: string;
         order_id: string;
+        amount: number;
+        currency: string;
         notes?: Record<string, string>;
         status: string;
       };
@@ -34,31 +27,13 @@ interface RazorpayWebhookPayload {
     order?: {
       entity: {
         id: string;
+        amount: number;
+        currency: string;
         notes?: Record<string, string>;
         status: string;
       };
     };
   };
-}
-
-/**
- * Extract the WooCommerce order ID from the Razorpay webhook payload.
- * The wc_order_id is stored in the Razorpay order notes during creation.
- */
-function extractWcOrderId(payload: RazorpayWebhookPayload): number | null {
-  // Try payment entity notes first
-  const paymentNotes = payload.payload?.payment?.entity?.notes;
-  if (paymentNotes?.wc_order_id) {
-    return Number(paymentNotes.wc_order_id);
-  }
-
-  // Fallback to order entity notes
-  const orderNotes = payload.payload?.order?.entity?.notes;
-  if (orderNotes?.wc_order_id) {
-    return Number(orderNotes.wc_order_id);
-  }
-
-  return null;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -95,38 +70,152 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const eventType = payload.event;
-  const targetStatus = EVENT_TO_WC_STATUS[eventType];
+  const paymentEntity = payload.payload?.payment?.entity;
+  const orderEntity = payload.payload?.order?.entity;
 
-  if (!targetStatus) {
-    // Acknowledge unknown/unhandled events so Razorpay doesn't retry
-    return NextResponse.json({ received: true, ignored: true });
+  // Derive unique event ID from header or fallback
+  const eventId =
+    req.headers.get("x-razorpay-event-id") ||
+    `${eventType}:${paymentEntity?.id || orderEntity?.id || Date.now()}`;
+
+  // If payment.authorized, explicitly ignore per spec
+  if (eventType === "payment.authorized") {
+    return NextResponse.json({ received: true, ignored: true }, { status: 200 });
   }
 
-  const wcOrderId = extractWcOrderId(payload);
-  if (!wcOrderId) {
-    console.warn(
-      `[razorpay webhook] ${eventType}: No wc_order_id in notes — skipping`
-    );
-    // Acknowledge anyway so Razorpay doesn't retry
-    return NextResponse.json({ received: true, skipped: true });
+  // Filter unhandled event types early
+  if (
+    eventType !== "payment.captured" &&
+    eventType !== "order.paid" &&
+    eventType !== "payment.failed"
+  ) {
+    return NextResponse.json({ received: true, ignored: true }, { status: 200 });
   }
 
-  try {
-    await updateWooOrderStatus(wcOrderId, targetStatus);
-    console.log(
-      `[razorpay webhook] ${eventType}: WC order ${wcOrderId} → ${targetStatus}`
-    );
-  } catch (err) {
-    // Return 500 so Razorpay retries delivery
+  // Resolve WooCommerce order ID via payment.entity.order_id -> fetchRazorpayOrder -> notes.wc_order_id
+  let wcOrderId: number | null = null;
+  const razorpayOrderId = paymentEntity?.order_id || orderEntity?.id;
+
+  if (razorpayOrderId) {
+    try {
+      const rzpOrder = await fetchRazorpayOrder(razorpayOrderId);
+      if (rzpOrder.notes?.wc_order_id) {
+        wcOrderId = Number(rzpOrder.notes.wc_order_id);
+      }
+    } catch (err) {
+      console.warn(
+        `[razorpay webhook] Failed to fetch Razorpay order ${razorpayOrderId}:`,
+        err
+      );
+    }
+  }
+
+  // Fallback to payload notes if direct order fetch didn't resolve it
+  if (!wcOrderId || isNaN(wcOrderId)) {
+    const payloadWcId =
+      paymentEntity?.notes?.wc_order_id || orderEntity?.notes?.wc_order_id;
+    if (payloadWcId) {
+      wcOrderId = Number(payloadWcId);
+    }
+  }
+
+  if (!wcOrderId || isNaN(wcOrderId)) {
     console.error(
-      `[razorpay webhook] Failed to update WC order ${wcOrderId}:`,
-      err
+      `[razorpay webhook] ${eventType}: Unable to resolve wc_order_id from Razorpay order or payload notes`
     );
-    return NextResponse.json(
-      { error: "Failed to update WooCommerce order status. Will retry." },
-      { status: 500 }
-    );
+    // Acknowledge with 200 skipped so Razorpay does not retry
+    return NextResponse.json({ received: true, skipped: true }, { status: 200 });
   }
 
-  return NextResponse.json({ received: true });
+  // Handle payment success (payment.captured / order.paid)
+  if (eventType === "payment.captured" || eventType === "order.paid") {
+    if (!paymentEntity) {
+      console.warn(
+        `[razorpay webhook] ${eventType}: Missing payment entity in payload`
+      );
+      return NextResponse.json({ received: true, skipped: true }, { status: 200 });
+    }
+
+    try {
+      const result = await confirmPayment({
+        gateway: "razorpay",
+        eventId,
+        wcOrderId,
+        paymentId: paymentEntity.id,
+        amountMinor: paymentEntity.amount,
+        currency: paymentEntity.currency,
+        source: "webhook",
+      });
+
+      if (!result.ok) {
+        console.error(
+          `[razorpay webhook] confirmPayment returned ok:false (code: ${result.code}) for order ${wcOrderId}`
+        );
+      }
+
+      return NextResponse.json({ received: true, result }, { status: 200 });
+    } catch (err) {
+      if (err instanceof PaymentBackendError) {
+        console.error(
+          `[razorpay webhook] PaymentBackendError for order ${wcOrderId}:`,
+          err
+        );
+        return NextResponse.json(
+          { error: "Payment backend error. Will retry." },
+          { status: 500 }
+        );
+      }
+      console.error(
+        `[razorpay webhook] Unexpected error confirming payment for order ${wcOrderId}:`,
+        err
+      );
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Handle payment failure (payment.failed)
+  if (eventType === "payment.failed") {
+    try {
+      const result = await updatePaymentStatus({
+        gateway: "razorpay",
+        eventId,
+        wcOrderId,
+        paymentId: paymentEntity?.id || "",
+        status: "failed",
+        reason: "Razorpay payment.failed webhook",
+      });
+
+      if (!result.ok) {
+        console.error(
+          `[razorpay webhook] updatePaymentStatus returned ok:false (code: ${result.code}) for order ${wcOrderId}`
+        );
+      }
+
+      return NextResponse.json({ received: true, result }, { status: 200 });
+    } catch (err) {
+      if (err instanceof PaymentBackendError) {
+        console.error(
+          `[razorpay webhook] PaymentBackendError updating status for order ${wcOrderId}:`,
+          err
+        );
+        return NextResponse.json(
+          { error: "Payment backend error. Will retry." },
+          { status: 500 }
+        );
+      }
+      console.error(
+        `[razorpay webhook] Unexpected error updating status for order ${wcOrderId}:`,
+        err
+      );
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
+  }
+
+  return NextResponse.json({ received: true, ignored: true }, { status: 200 });
 }

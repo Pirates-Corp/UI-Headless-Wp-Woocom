@@ -61,6 +61,40 @@ export async function createRazorpayOrder(
   return order as unknown as RazorpayOrderResponse;
 }
 
+export interface RazorpayOrderEntity {
+  id: string;
+  entity?: string;
+  amount: number;
+  amount_paid?: number;
+  amount_due?: number;
+  currency: string;
+  receipt?: string;
+  status: string;
+  notes?: Record<string, string>;
+}
+
+export interface RazorpayPaymentEntity {
+  id: string;
+  entity?: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  notes?: Record<string, string>;
+}
+
+export async function fetchRazorpayOrder(id: string): Promise<RazorpayOrderEntity> {
+  const rzp = getRazorpayServer();
+  const order = await rzp.orders.fetch(id);
+  return order as unknown as RazorpayOrderEntity;
+}
+
+export async function fetchRazorpayPayment(id: string): Promise<RazorpayPaymentEntity> {
+  const rzp = getRazorpayServer();
+  const payment = await rzp.payments.fetch(id);
+  return payment as unknown as RazorpayPaymentEntity;
+}
+
 // ─── Payment Signature Verification ──────────────────────────────────────────
 
 /**

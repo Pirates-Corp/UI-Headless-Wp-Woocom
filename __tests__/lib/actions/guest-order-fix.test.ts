@@ -139,6 +139,12 @@ describe("Guest Order Bug Fix — Customer ID Assignment & Account Orders", () =
             json: async () => ({ id: 501, order_key: "wc_order_key_501" }),
           });
         }
+        if (url.includes("/wp-json/wc/v3/orders/501")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ id: 501, order_key: "wc_order_key_501", total: "1000.00", currency: "INR" }),
+          });
+        }
         return Promise.resolve({ ok: true, json: async () => ({}) });
       });
 
@@ -167,6 +173,12 @@ describe("Guest Order Bug Fix — Customer ID Assignment & Account Orders", () =
           return Promise.resolve({
             ok: true,
             json: async () => ({ id: 502, order_key: "wc_order_key_502" }),
+          });
+        }
+        if (url.includes("/wp-json/wc/v3/orders/502")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ id: 502, order_key: "wc_order_key_502", total: "1000.00", currency: "INR" }),
           });
         }
         return Promise.resolve({ ok: true, json: async () => ({}) });
@@ -229,6 +241,12 @@ describe("Guest Order Bug Fix — Customer ID Assignment & Account Orders", () =
           return Promise.resolve({
             ok: true,
             json: async () => ({ id: 601, order_key: "wc_order_key_601" }),
+          });
+        }
+        if (url.includes("/wp-json/wc/v3/orders/601")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ id: 601, order_key: "wc_order_key_601", total: "50.00", currency: "USD" }),
           });
         }
         return Promise.resolve({ ok: true, json: async () => ({}) });

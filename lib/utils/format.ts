@@ -134,3 +134,17 @@ export function formatDate(dateInput?: string | number | Date | null): string {
   });
 }
 
+/**
+ * Convert a decimal currency amount to minor units (e.g. dollars/rupees -> cents/paise).
+ * Supports zero-decimal, two-decimal, and three-decimal currencies.
+ */
+export function toMinorUnits(total: number | string, currency: string): number {
+  const c = currency.toUpperCase();
+  const zero = ["JPY", "KRW", "VND", "CLP", "UGX", "XOF", "XAF"];
+  const three = ["KWD", "BHD", "OMR", "JOD", "TND"];
+  const d = zero.includes(c) ? 0 : three.includes(c) ? 3 : 2;
+  const num = typeof total === "string" ? parseFloat(total) : total;
+  if (isNaN(num)) return 0;
+  return Math.round(num * Math.pow(10, d));
+}
+

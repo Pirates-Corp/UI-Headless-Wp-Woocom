@@ -239,10 +239,10 @@ export const RazorpayVerifySchema = z.object({
   razorpay_signature: z
     .string()
     .regex(/^[a-f0-9]{64}$/, "Invalid signature format"),
-  /** WooCommerce order ID (numeric) */
-  wc_order_id: z.number().int().positive(),
+  /** WooCommerce order ID (numeric, optional as it is verified from server notes) */
+  wc_order_id: z.number().int().positive().optional(),
   /** WooCommerce order key — format: wc_order_<alphanumeric> */
-  wc_order_key: z.string().min(1).max(100),
+  wc_order_key: z.string().min(1).max(100).optional(),
   /** Customer billing email for order confirmation redirect */
   billing_email: z.string().email().optional(),
 });

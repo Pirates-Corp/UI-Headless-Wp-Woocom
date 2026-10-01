@@ -1,52 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { constructStripeEvent, updateWooOrderStatus } from "@/lib/stripe-server";
+import { constructStripeEvent } from "@/lib/stripe-server";
+import {
+  confirmPayment,
+  updatePaymentStatus,
+  PaymentBackendError,
+} from "@/lib/woocommerce/payment-confirm";
 import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
-
-// Maps each relevant Stripe event to the WC order status it should produce
-const EVENT_TO_WC_STATUS: Partial<Record<Stripe.Event["type"], string>> = {
-  // Card payment completed immediately
-  "checkout.session.completed": "processing", // payment_status === 'paid'
-  // Async methods (BACS, SEPA, etc.) that succeed after a delay
-  "checkout.session.async_payment_succeeded": "processing",
-  // Async payment failed after delay
-  "checkout.session.async_payment_failed": "failed",
-  // Session expired without payment
-  "checkout.session.expired": "cancelled",
-};
-
-async function handleSessionEvent(
-  session: Stripe.Checkout.Session,
-  targetStatus: string
-): Promise<NextResponse | null> {
-  const orderId = Number(session.metadata?.wc_order_id);
-  if (!orderId) {
-    console.warn("[stripe webhook] session has no wc_order_id metadata — skipping");
-    return null; // acknowledge anyway so Stripe doesn't retry
-  }
-
-  // For checkout.session.completed with async payment methods, the
-  // payment_status will be 'unpaid' — put the order on-hold instead.
-  const status =
-    targetStatus === "processing" && session.payment_status !== "paid"
-      ? "on-hold"
-      : targetStatus;
-
-  try {
-    await updateWooOrderStatus(orderId, status);
-    console.log(`[stripe webhook] WC order ${orderId} → ${status}`);
-  } catch (err) {
-    // Return 500 so Stripe retries delivery
-    console.error(`[stripe webhook] failed to update WC order ${orderId}:`, err);
-    return NextResponse.json(
-      { error: "Failed to update WooCommerce order status. Will retry." },
-      { status: 500 }
-    );
-  }
-
-  return null; // success — no error response
-}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Must read raw body before any parsing for signature verification
@@ -68,13 +29,132 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const handled = EVENT_TO_WC_STATUS[event.type];
-  if (handled) {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const errResponse = await handleSessionEvent(session, handled);
-    if (errResponse) return errResponse;
-  }
-  // All other event types are acknowledged and ignored
+  const eventId = event.id;
 
-  return NextResponse.json({ received: true });
+  // Handle Stripe Checkout Session events
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded" ||
+    event.type === "checkout.session.async_payment_failed" ||
+    event.type === "checkout.session.expired"
+  ) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const wcOrderId = Number(session.metadata?.wc_order_id);
+
+    if (!wcOrderId || isNaN(wcOrderId)) {
+      console.warn(`[stripe webhook] ${event.type}: session has no wc_order_id metadata — skipping`);
+      return NextResponse.json({ received: true, skipped: true }, { status: 200 });
+    }
+
+    const paymentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : (session.payment_intent?.id || session.id);
+    const amountMinor = session.amount_total ?? 0;
+    const currency = (session.currency || "USD").toUpperCase();
+
+    try {
+      if (
+        event.type === "checkout.session.async_payment_succeeded" ||
+        (event.type === "checkout.session.completed" && session.payment_status === "paid")
+      ) {
+        const result = await confirmPayment({
+          gateway: "stripe",
+          eventId,
+          wcOrderId,
+          paymentId,
+          amountMinor,
+          currency,
+          source: "webhook",
+        });
+
+        if (!result.ok) {
+          console.error(
+            `[stripe webhook] confirmPayment returned ok:false (code: ${result.code}) for order ${wcOrderId}`
+          );
+        }
+
+        return NextResponse.json({ received: true, result }, { status: 200 });
+      }
+
+      if (event.type === "checkout.session.completed" && session.payment_status !== "paid") {
+        const result = await updatePaymentStatus({
+          gateway: "stripe",
+          eventId,
+          wcOrderId,
+          paymentId,
+          status: "on-hold",
+          reason: "Stripe checkout session completed with unpaid status",
+        });
+
+        if (!result.ok) {
+          console.error(
+            `[stripe webhook] updatePaymentStatus returned ok:false (code: ${result.code}) for order ${wcOrderId}`
+          );
+        }
+
+        return NextResponse.json({ received: true, result }, { status: 200 });
+      }
+
+      if (event.type === "checkout.session.async_payment_failed") {
+        const result = await updatePaymentStatus({
+          gateway: "stripe",
+          eventId,
+          wcOrderId,
+          paymentId,
+          status: "failed",
+          reason: "Stripe async payment failed",
+        });
+
+        if (!result.ok) {
+          console.error(
+            `[stripe webhook] updatePaymentStatus returned ok:false (code: ${result.code}) for order ${wcOrderId}`
+          );
+        }
+
+        return NextResponse.json({ received: true, result }, { status: 200 });
+      }
+
+      if (event.type === "checkout.session.expired") {
+        const result = await updatePaymentStatus({
+          gateway: "stripe",
+          eventId,
+          wcOrderId,
+          paymentId,
+          status: "cancelled",
+          reason: "Stripe checkout session expired",
+        });
+
+        if (!result.ok) {
+          console.error(
+            `[stripe webhook] updatePaymentStatus returned ok:false (code: ${result.code}) for order ${wcOrderId}`
+          );
+        }
+
+        return NextResponse.json({ received: true, result }, { status: 200 });
+      }
+    } catch (err) {
+      if (err instanceof PaymentBackendError) {
+        console.error(
+          `[stripe webhook] PaymentBackendError for order ${wcOrderId}:`,
+          err
+        );
+        return NextResponse.json(
+          { error: "Payment backend error. Will retry." },
+          { status: 500 }
+        );
+      }
+      console.error(
+        `[stripe webhook] Unexpected error processing ${event.type} for order ${wcOrderId}:`,
+        err
+      );
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
+  }
+
+  // All other event types are acknowledged and ignored
+  return NextResponse.json({ received: true, ignored: true }, { status: 200 });
 }

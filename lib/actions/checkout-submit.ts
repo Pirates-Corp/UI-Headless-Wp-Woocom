@@ -265,15 +265,12 @@ export async function checkoutAction(
       });
     }
 
-    const totalAmount = parseInt(cart.totals?.total_price || "0");
-
     const result = await createRazorpayCheckoutOrder(
       billing,
       shipping,
       paymentMethod,
       lineItems,
       cartToken,
-      totalAmount > 0 ? totalAmount : undefined,
       nonce,
       cart
     );

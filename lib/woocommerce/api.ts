@@ -1219,6 +1219,43 @@ export async function assignOrderToCustomer(
   }
 }
 
+export interface WooOrderForPayment {
+  id: number;
+  order_key: string;
+  status: string;
+  total: string;
+  currency: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Server-only helper to fetch a WooCommerce order for payment processing via REST API v3.
+ * Returns the authoritative order data (total, currency, status, key) or null on failure.
+ */
+export async function getWooOrderForPayment(
+  orderId: number | string
+): Promise<WooOrderForPayment | null> {
+  if (!orderId) return null;
+  try {
+    const res = await restApiFetch(`/orders/${orderId}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(
+        `[getWooOrderForPayment] Failed to fetch order ${orderId} (${res.status}): ${errBody}`
+      );
+      return null;
+    }
+    const data = (await res.json()) as WooOrderForPayment;
+    return data;
+  } catch (err) {
+    console.error(`[getWooOrderForPayment] Exception fetching order ${orderId}:`, err);
+    return null;
+  }
+}
+
 // ─── Product Reviews (REST API v3) ──────────────────────────────────────────
 
 /**

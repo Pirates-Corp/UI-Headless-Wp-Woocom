@@ -66,33 +66,3 @@ export function constructStripeEvent(
   const stripe = getStripeServer();
   return stripe.webhooks.constructEvent(rawBody, signature, secret);
 }
-
-// ─── WooCommerce REST API v3 ──────────────────────────────────────────────────
-
-/**
- * Update a WooCommerce order status via the REST API.
- * Uses query-string auth so it works on both HTTP and HTTPS.
- * status values: "pending" | "processing" | "on-hold" | "completed" | "cancelled" | "refunded" | "failed"
- */
-export async function updateWooOrderStatus(
-  orderId: number,
-  status: string
-): Promise<void> {
-  const ck = process.env.WC_CONSUMER_KEY;
-  const cs = process.env.WC_CONSUMER_SECRET;
-  if (!ck || !cs) throw new Error("WC_CONSUMER_KEY / WC_CONSUMER_SECRET not set");
-
-  const base = process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL + "://" + process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST;
-  const url = `${base}/wp-json/wc/v3/orders/${orderId}?consumer_key=${ck}&consumer_secret=${cs}`;
-
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`WC order update failed (${res.status}): ${body}`);
-  }
-}
