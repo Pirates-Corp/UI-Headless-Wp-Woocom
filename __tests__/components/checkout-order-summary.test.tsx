@@ -38,7 +38,7 @@ const cart: WooCart = {
 };
 
 describe("CheckoutOrderSummary", () => {
-  it("omits policy and marketing rows while keeping Place Order", () => {
+  it("renders the legal notice without a checkbox or marketing row", () => {
     render(
       <CheckoutOrderSummary
         cart={cart}
@@ -51,9 +51,16 @@ describe("CheckoutOrderSummary", () => {
     );
 
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Terms & Conditions" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Privacy Policy" })).not.toBeInTheDocument();
     expect(screen.queryByText("Send me order updates & offers - (no spam)")).not.toBeInTheDocument();
+    expect(screen.getByText(/By proceeding, I agree to the/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
+      "href",
+      "/legal/privacy-policy"
+    );
+    expect(screen.getByRole("link", { name: "T&C" })).toHaveAttribute(
+      "href",
+      "/legal/terms-and-conditions"
+    );
     expect(screen.getByRole("button", { name: "Place Order" })).toBeInTheDocument();
   });
 });
