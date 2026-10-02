@@ -9,13 +9,6 @@ import {
 } from "@/lib/legal/content";
 import { LEGAL_CONTACT } from "@/lib/legal/contact";
 
-function DraftNotice() {
-  return <div className="rounded-lg border border-[var(--gold)]/40 bg-[var(--gold-light)]/20 p-4 text-sm">
-    <p className="font-semibold">Development draft</p>
-    <p className="mt-1 text-muted-foreground">This policy is sample content for implementation review. It is not final legal advice or client-approved wording.</p>
-  </div>;
-}
-
 function PolicyNav({ currentSlug }: { currentSlug?: string }) {
   return <nav aria-label="Legal and policies" className="w-full min-w-0 border-b border-border/60">
     <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -105,16 +98,7 @@ function RelatedPolicies({ policy }: { policy: LegalPolicy }) {
   </section>;
 }
 
-function PolicyMeta({ policy }: { policy: LegalPolicy }) {
-  return <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-    <span><span className="font-medium text-foreground">Version:</span> {policy.version}</span>
-    <span><span className="font-medium text-foreground">Effective:</span> {policy.effectiveDate ?? "To be confirmed"}</span>
-    <span><span className="font-medium text-foreground">Last updated:</span> {policy.lastUpdated ?? "To be confirmed"}</span>
-  </div>;
-}
-
 export function LegalPolicyView({ policy }: { policy: LegalPolicy }) {
-  const isTermsAndConditions = policy.slug === "terms-and-conditions";
   return <div className="bg-secondary/20">
     <section className="border-b border-border/60 bg-background">
       <div className="container mx-auto px-4 pb-8 pt-10 md:px-6 md:pb-10 md:pt-14">
@@ -123,18 +107,11 @@ export function LegalPolicyView({ policy }: { policy: LegalPolicy }) {
         <PolicyNav currentSlug={policy.slug} />
         <h1 className="mt-3 max-w-3xl font-heading text-3xl font-bold tracking-tight sm:text-4xl">{policy.title}</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">{policy.summary}</p>
-        {!isTermsAndConditions && <div className="mt-6 flex flex-wrap items-center gap-3">
-          <span className="rounded-full border border-[var(--gold)]/50 bg-[var(--gold-light)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">{
-            policy.status === "draft" ? "Draft / development" : "Approved"
-          }</span>
-          <PolicyMeta policy={policy} />
-        </div>}
       </div>
     </section>
     <div className="container mx-auto px-4 md:px-6">
       <div className="py-6 md:py-10">
-        {policy.status === "draft" && !isTermsAndConditions && <DraftNotice />}
-        <div className={(isTermsAndConditions ? "mt-0 " : "mt-6 ") + "grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12"}>
+        <div className="mt-0 grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
           <TableOfContents policy={policy} />
           <article className="min-w-0 max-w-3xl space-y-10">
             {policy.sections.map((section) => <section key={section.id} id={section.id} className="scroll-mt-28">
