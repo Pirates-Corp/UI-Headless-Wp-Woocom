@@ -166,8 +166,7 @@ export function LegalHubView() {
         <Link key={policy.slug} href={getLegalPolicyHref(policy.slug)}
           className="group rounded-xl border border-border/60 bg-background p-5 transition-colors hover:border-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
           <div className="flex items-start justify-between gap-4">
-            <div><span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--gold-muted)]">{policy.status === "draft" ? "Development draft" : "Approved"}</span>
-              <h2 className="mt-2 font-heading text-2xl font-bold">{policy.title}</h2></div>
+            <div><h2 className="font-heading text-2xl font-bold">{policy.title}</h2></div>
             <ArrowRight className="mt-1 size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">{policy.summary}</p>
