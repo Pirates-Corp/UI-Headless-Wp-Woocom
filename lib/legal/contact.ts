@@ -1,3 +1,5 @@
+import { APP_CONFIG } from "@/config";
+
 export const LEGAL_CONTACT = {
   brand: "Round Logics",
   address: [
@@ -7,6 +9,6 @@ export const LEGAL_CONTACT = {
     "Tamil Nadu 603104",
   ],
   phone: "098407 93240",
-  whatsappPhone: "+91 9345678221",
+  whatsappPhone: APP_CONFIG.whatsapp.phoneNumber,
   email: "hello@roundlogics.com",
 } as const;
