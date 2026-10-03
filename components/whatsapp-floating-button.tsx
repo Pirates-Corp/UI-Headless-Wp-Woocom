@@ -1,4 +1,4 @@
-import { getWhatsAppChatUrl } from "@/config";
+import { getWhatsAppChatUrl } from "@/lib/utils/whatsapp";
 
 export function WhatsAppFloatingButton() {
   return (
