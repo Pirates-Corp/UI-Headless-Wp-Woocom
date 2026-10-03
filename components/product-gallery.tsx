@@ -18,7 +18,14 @@ export function ProductGallery({
   productName,
   activeImage,
 }: ProductGalleryProps) {
-  const images = (rawImages || []).filter((img) => Boolean(img?.src && img.src.trim() !== ""));
+  const seenImageIds = new Set<number>();
+  const images = (rawImages || [])
+    .filter((img) => Boolean(img?.src && img.src.trim() !== ""))
+    .filter((img) => {
+      if (seenImageIds.has(img.id)) return false;
+      seenImageIds.add(img.id);
+      return true;
+    });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);

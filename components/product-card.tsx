@@ -97,7 +97,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-secondary/60 mb-3">
         <Link
           href={`/product/${product.slug}`}
-          className="block w-full h-full"
+          className="relative block w-full h-full"
           onClick={() => trackSelectItem(productToEcommerceItem(product), "Product List", product.prices.currency_code)}
         >
           {image ? (
