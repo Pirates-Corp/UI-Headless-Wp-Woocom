@@ -4,8 +4,10 @@ import {
   LoginSchema,
   RegisterSchema,
   ForgotPasswordSchema,
+  ResetPasswordSchema,
   type LoginInput,
   type RegisterInput,
+  type ResetPasswordInput,
 } from "@/lib/validation/auth-schemas";
 import {
   loginUserOnServer,
@@ -13,6 +15,7 @@ import {
   registerUserOnServer,
   revokeTokenOnServer,
   resetPasswordOnServer,
+  changePasswordOnServer,
 } from "@/lib/auth/jwt-auth";
 import {
   setAuthCookies,
@@ -526,6 +529,7 @@ export async function getAuthSessionAction(): Promise<{
 
 /**
  * Server Action: Request password reset email.
+ * Always returns a generic success message to prevent user enumeration.
  */
 export async function forgotPasswordAction(
   email: string
@@ -539,22 +543,56 @@ export async function forgotPasswordAction(
   }
 
   try {
-    const res = await resetPasswordOnServer(parsed.data.email);
-    if (!res.success) {
-      return {
-        success: false,
-        error: res.message || "Failed to send reset instructions",
-      };
-    }
-
+    await resetPasswordOnServer(parsed.data.email);
     return {
       success: true,
-      message: res.message || "Password reset instructions have been sent to your email.",
+      message: "If an account exists with this email, you will receive password reset instructions shortly.",
     };
   } catch (error: unknown) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to process forgot password request",
+    };
+  }
+}
+
+/**
+ * Server Action: Set new password using reset code.
+ */
+export async function resetPasswordAction(
+  input: ResetPasswordInput
+): Promise<AuthActionResult> {
+  const parsed = ResetPasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid reset password details",
+    };
+  }
+
+  try {
+    const { email, code, password } = parsed.data;
+    const res = await changePasswordOnServer({
+      email,
+      code,
+      newPassword: password,
+    });
+
+    if (!res.success) {
+      return {
+        success: false,
+        error: res.message || "Failed to reset password. The link may be expired or invalid.",
+      };
+    }
+
+    return {
+      success: true,
+      message: res.message || "Your password has been reset successfully. Please sign in with your new password.",
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unexpected error occurred while resetting password",
     };
   }
 }

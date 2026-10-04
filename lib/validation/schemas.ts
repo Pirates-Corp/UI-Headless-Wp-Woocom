@@ -219,6 +219,7 @@ export const OrderConfirmationParamsSchema = z.object({
     .catch(undefined),
   billing_email: z.email().optional().catch(undefined),
   buy_now: z.enum(["1", "true"]).optional().catch(undefined),
+  ref: z.string().max(50).optional().catch(undefined),
 });
 
 // ── Razorpay payment verification ────────────────────────────────────────────

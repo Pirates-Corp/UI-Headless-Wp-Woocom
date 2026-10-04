@@ -296,5 +296,21 @@ export const en: Record<string, string> = {
   "notFound.description": "The page you\u2019re looking for doesn\u2019t exist or has been moved.",
   "notFound.goHome": "Go Home",
   "notFound.browseShop": "Browse Shop",
+
+  "resetPassword.pageTitle": "Reset Password",
+  "resetPassword.metaDescription": "Set a new password for your account.",
+  "resetPassword.title": "Set New Password",
+  "resetPassword.description": "Please choose a strong new password for your account.",
+  "resetPassword.newPasswordLabel": "New Password",
+  "resetPassword.confirmPasswordLabel": "Confirm New Password",
+  "resetPassword.passwordMinLength": "Password (min. 6 characters)",
+  "resetPassword.submitButton": "Reset Password",
+  "resetPassword.submitting": "Updating password...",
+  "resetPassword.successToast": "Your password has been reset successfully. Please sign in.",
+  "resetPassword.invalidLinkTitle": "Invalid or Expired Link",
+  "resetPassword.invalidLinkDesc": "This password reset link is invalid, incomplete, or has expired. Please request a new one.",
+  "resetPassword.requestNewLink": "Request New Reset Link",
+  "resetPassword.backToLogin": "Back to Sign In",
 };
+
 
