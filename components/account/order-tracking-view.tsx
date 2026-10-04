@@ -20,6 +20,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/utils/format";
 
 interface OrderTrackingViewProps {
   orderId: number;
@@ -263,11 +264,7 @@ export function OrderTrackingView({
             </span>
             <span className="font-semibold text-xs sm:text-sm text-foreground truncate">
               {tracking?.etd ? (
-                new Date(tracking.etd).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })
+                formatDate(tracking.etd)
               ) : (
                 "Standard Delivery (3-5 Days)"
               )}

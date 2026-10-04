@@ -38,15 +38,38 @@ This guide provides a complete, step-by-step action plan to clone this repositor
 
 ### 3. Install Plugins & MU-Plugins
 - **Simple JWT Login Plugin**:
-  - Install and activate `Simple JWT Login` from WordPress plugin directory.
-  - In plugin settings, configure your `AUTH_KEY` and enable user registration/login endpoints.
+  - Install and activate `Simple JWT Login` from the WordPress plugin directory.
+  - In **Simple JWT Login → Auth Codes**, configure your `AUTH_KEY`.
+  - In **Simple JWT Login → Users / Registration**, enable registration and authentication endpoints.
+  - In **Simple JWT Login → Reset Password**:
+    - Check **Allow Reset Password** and **Allow Change Password**.
+    - Set **Email Subject**:
+      ```text
+      Reset your password for {{SITE_NAME}}
+      ```
+    - Set **Email Body**:
+      ```html
+      <p>Hello,</p>
+      <p>You requested a password reset for your account on {{SITE_NAME}}.</p>
+      <p><a href="https://www.clientdomain.com/reset-password?email={{EMAIL}}&code={{CODE}}">Click here to reset your password</a></p>
+      <p>If the link above does not work, copy and paste this URL into your browser:</p>
+      <p>https://www.clientdomain.com/reset-password?email={{EMAIL}}&code={{CODE}}</p>
+      <p>If you did not request this, you can safely ignore this email.</p>
+      ```
 - **Copy MU-Plugins**:
   - Copy the files from `wp-content/mu-plugins/` in this repository to the client's WordPress `wp-content/mu-plugins/` folder:
     - `custom-cart-endpoint.php` *(Handles persistent cart sync and cross-method OAuth linking)*
+    - `custom-address-book-endpoint.php` *(Multi-address book REST endpoints)*
     - `custom-shipping-endpoint.php` *(Shiprocket / custom tracking webhook integration)*
-- **Set Cart Authentication Secret in `wp-config.php`**:
+    - `custom-email-links.php` *(Rewrites customer-facing WooCommerce email links to the Next.js storefront)*
+    - `templates/emails/` *(MU-plugin email template overrides for new account notifications)*
+- **Set Configuration Constants in `wp-config.php`**:
   ```php
+  // Cart authentication secret for internal REST endpoints
   define('MYAPP_CART_AUTH_KEY', 'your_secure_random_key_here');
+
+  // Next.js storefront URL for transactional email link rewriting
+  define('MYAPP_STOREFRONT_URL', 'https://www.clientdomain.com');
   ```
 
 ---

@@ -884,23 +884,26 @@ export async function revokeTokenOnServer(jwtToken: string): Promise<{
 }
 
 /**
- * Request password reset email.
+ * Request password reset email via Simple JWT Login REST API.
  */
 export async function resetPasswordOnServer(email: string): Promise<{
   success: boolean;
   message: string;
 }> {
   const cleanEmail = email.trim().toLowerCase();
-  const url = getJwtApiUrl("users/reset-password");
+  let url = getJwtApiUrl("user/reset_password");
   const authKey = getAuthKey();
 
   const body: Record<string, unknown> = {
     email: cleanEmail,
   };
-  if (authKey) body.AUTH_KEY = authKey;
+  if (authKey) {
+    body.AUTH_KEY = authKey;
+    body.AUTH_CODE = authKey;
+  }
 
   try {
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -909,44 +912,137 @@ export async function resetPasswordOnServer(email: string): Promise<{
       cache: "no-store",
     });
 
-    const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    let json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
 
-    if (res.ok && json?.success !== false) {
-      return {
-        success: true,
-        message: (json?.message as string) || "Password reset instructions have been sent to your email.",
-      };
+    // Only fallback if the route itself is not registered on the WordPress backend
+    if (!res.ok && json?.code === "rest_no_route") {
+      url = getJwtApiUrl("users/reset_password");
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+      json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
     }
 
-    // Fallback: WordPress Lost Password form
-    const formParams = new URLSearchParams();
-    formParams.append("user_login", cleanEmail);
-    formParams.append("wp-submit", "Get New Password");
-
-    const wpRes = await fetch(`${getBaseUrl()}/wp-login.php?action=lostpassword`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formParams.toString(),
-      redirect: "manual",
-    });
-
-    if (wpRes.status === 302 || wpRes.status === 200) {
-      return {
-        success: true,
-        message: "Password reset instructions have been sent to your email.",
-      };
-    }
+    const isSuccess = res.ok && json?.success !== false;
+    const dataObj = json?.data as Record<string, unknown> | undefined;
+    const msg =
+      (dataObj?.message as string) ||
+      (json?.message as string) ||
+      (isSuccess
+        ? "Password reset instructions have been sent to your email."
+        : "Failed to send password reset email.");
 
     return {
-      success: false,
-      message: extractErrorMessage(json, wpRes.status),
+      success: isSuccess,
+      message: msg,
     };
   } catch (error: unknown) {
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to submit password reset request",
+    };
+  }
+}
+
+/**
+ * Set new password using reset code via Simple JWT Login REST API.
+ */
+export async function changePasswordOnServer({
+  email,
+  code,
+  newPassword,
+}: {
+  email: string;
+  code: string;
+  newPassword: string;
+}): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanCode = code.trim();
+  const authKey = getAuthKey();
+
+  // Simple JWT Login REST API requires new_password to be base64-encoded text
+  const base64Password = Buffer.from(newPassword, "utf-8").toString("base64");
+
+  const body: Record<string, unknown> = {
+    email: cleanEmail,
+    code: cleanCode,
+    new_password: base64Password,
+    password: base64Password,
+  };
+  if (authKey) {
+    body.AUTH_KEY = authKey;
+    body.AUTH_CODE = authKey;
+  }
+
+  try {
+    // 1. Try PUT user/reset_password (primary Simple JWT Login route)
+    let url = getJwtApiUrl("user/reset_password");
+    let res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    let json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+
+    // 2. If route not found, try PUT users/reset_password
+    if (!res.ok && json?.code === "rest_no_route") {
+      url = getJwtApiUrl("users/reset_password");
+      res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+      json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    }
+
+    // 3. If still route not found, try POST user/change_password
+    if (!res.ok && json?.code === "rest_no_route") {
+      url = getJwtApiUrl("user/change_password");
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+      json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    }
+
+    const isSuccess = res.ok && json?.success !== false;
+    const dataObj = json?.data as Record<string, unknown> | undefined;
+    const msg =
+      (dataObj?.message as string) ||
+      (json?.message as string) ||
+      (dataObj?.error as string) ||
+      (json?.error as string) ||
+      (isSuccess
+        ? "Password has been reset successfully."
+        : "Failed to reset password. The reset link may be invalid or expired.");
+
+    return {
+      success: isSuccess,
+      message: msg,
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to reset password",
     };
   }
 }

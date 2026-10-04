@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useCheckoutStore } from "@/lib/store/checkout-store";
 import {
   getUserAuthMethodsAction,
   forgotPasswordAction,
@@ -24,6 +25,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/defaultbutton";
 import { Badge } from "@/components/ui/badge";
+import { AddressBookSection } from "@/components/account/address-book-section";
+import { formatDate } from "@/lib/utils/format";
 import { toast } from "sonner";
 
 function GoogleSmallIcon() {
@@ -80,6 +83,10 @@ export function AccountPageContent() {
 
   const handleLogout = async () => {
     try {
+      useCheckoutStore.getState().reset();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("checkout-store");
+      }
       await logout();
       toast.success("Signed out successfully");
       window.location.href = "/";
@@ -185,8 +192,7 @@ export function AccountPageContent() {
                 <p className="text-xs text-muted-foreground/80 mt-1 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
                   <span>
-                    Member since{" "}
-                    {new Date(user.registeredDate).toLocaleDateString()}
+                    Member since {formatDate(user.registeredDate)}
                   </span>
                 </p>
               )}
@@ -274,7 +280,7 @@ export function AccountPageContent() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         {/* Profile Overview Details */}
         <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm">
           <h3 className="font-heading text-lg font-semibold mb-6 flex items-center gap-2">
@@ -408,7 +414,9 @@ export function AccountPageContent() {
           </div>
         </div>
       </div>
+
+      {/* Saved Address Book Section */}
+      <AddressBookSection />
     </main>
   );
 }
-

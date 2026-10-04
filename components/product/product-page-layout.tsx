@@ -1,29 +1,36 @@
 import { Suspense } from "react";
-import { ProductGallery } from "@/components/product-gallery";
+import { ProductMainSection } from "@/components/product/product-main-section";
 import { Separator } from "@/components/ui/separator";
 import { ProductBreadcrumb } from "@/components/product/product-breadcrumb";
-import { ProductInfo } from "@/components/product/product-info";
 import { ProductSpecs } from "@/components/product/product-specs";
+import { ProductReviews } from "@/components/product/product-reviews";
 import { RelatedProducts } from "@/components/product/related-products";
 import { stripHtml } from "@/lib/utils/format";
 import { productToEcommerceItem } from "@/lib/utils/gtm-items";
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { FireGTMEvent } from "@/components/analytics/fire-gtm-event";
-import type { WooProduct } from "@/lib/woocommerce/types";
+import type {
+  WooProduct,
+  WooProductReview,
+  WooProductPrices,
+  WooImage,
+} from "@/lib/woocommerce/types";
 import { t } from "@/lib/i18n";
 
 export interface ProductPageData {
   product: WooProduct;
   initialVariationId?: number;
-  initialVariationPrices?: WooProduct["prices"];
+  initialVariationPrices?: WooProductPrices;
   initialVariationInStock?: boolean;
+  initialVariationImage?: WooImage | null;
+  reviews?: WooProductReview[];
 }
 
 /** Builds the JSON-LD Product schema for a product page. */
 function buildProductJsonLd(
   product: WooProduct,
   isInStock: boolean,
-  prices: WooProduct["prices"]
+  prices: WooProductPrices,
 ) {
   const divisor = Math.pow(10, prices.currency_minor_unit);
   const priceAmt = parseInt(prices.price) / divisor;
@@ -35,7 +42,7 @@ function buildProductJsonLd(
     description: stripHtml(product.short_description || product.description),
     image: product.images.map((i) => i.src),
     sku: product.sku,
-    brand: { "@type": "Brand", name: t('brand.name') },
+    brand: { "@type": "Brand", name: t("brand.name") },
     offers: {
       "@type": "Offer",
       price: priceAmt.toFixed(prices.currency_minor_unit),
@@ -61,6 +68,8 @@ export function ProductPageLayout({
   initialVariationId,
   initialVariationPrices,
   initialVariationInStock,
+  initialVariationImage,
+  reviews = [],
 }: ProductPageData) {
   const displayPrices = initialVariationPrices ?? product.prices;
   const isInStock = initialVariationInStock ?? product.is_in_stock;
@@ -94,16 +103,15 @@ export function ProductPageLayout({
           productName={product.name}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
-          <ProductGallery images={product.images} productName={product.name} />
-          <ProductInfo
-            key={initialVariationId}
-            product={product}
-            initialVariationId={initialVariationId}
-            initialVariationPrices={initialVariationPrices}
-            initialVariationInStock={initialVariationInStock}
-          />
-        </div>
+        <ProductMainSection
+          key={initialVariationId}
+          product={product}
+          initialVariationId={initialVariationId}
+          initialVariationPrices={initialVariationPrices}
+          initialVariationInStock={initialVariationInStock}
+          initialVariationImage={initialVariationImage}
+          reviews={reviews}
+        />
 
         {product.description && (
           <div className="mt-16 md:mt-20 max-w-3xl">
@@ -117,6 +125,15 @@ export function ProductPageLayout({
         )}
 
         <ProductSpecs attributes={product.attributes} />
+
+        {/* Customer Reviews Section */}
+        <ProductReviews
+          productId={product.id}
+          productName={product.name}
+          averageRating={product.average_rating}
+          reviewCount={product.review_count}
+          reviews={reviews}
+        />
 
         {product.categories[0] && (
           <Suspense fallback={null}>

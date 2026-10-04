@@ -55,6 +55,32 @@ export const ForgotPasswordSchema = z.object({
     .max(100, "Email is too long"),
 });
 
+export const ResetPasswordSchema = z
+  .object({
+    email: z
+      .string()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address")
+      .max(100, "Email is too long"),
+    code: z
+      .string()
+      .min(1, "Reset code is required")
+      .max(256, "Reset code is too long"),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .max(128, "Password is too long"),
+    confirmPassword: z
+      .string()
+      .min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+

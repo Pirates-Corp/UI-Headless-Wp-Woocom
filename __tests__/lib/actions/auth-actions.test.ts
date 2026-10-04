@@ -3,12 +3,14 @@
  */
 
 // Mock external modules before imports
+// Mock external modules before imports
 jest.mock("@/lib/auth/jwt-auth", () => ({
   loginUserOnServer: jest.fn(),
   loginWithGoogleOnServer: jest.fn(),
   registerUserOnServer: jest.fn(),
   revokeTokenOnServer: jest.fn(),
   resetPasswordOnServer: jest.fn(),
+  changePasswordOnServer: jest.fn(),
 }));
 
 jest.mock("@/lib/auth/session", () => ({
@@ -32,6 +34,8 @@ jest.mock("@/lib/woocommerce/persistent-cart", () => ({
 
 import {
   loginWithGoogleOnServer as mockLoginWithGoogleOnServer,
+  resetPasswordOnServer as mockResetPasswordOnServer,
+  changePasswordOnServer as mockChangePasswordOnServer,
 } from "@/lib/auth/jwt-auth";
 import { setAuthCookies as mockSetAuthCookies } from "@/lib/auth/session";
 import {
@@ -47,6 +51,8 @@ import {
 import {
   googleLoginAction,
   mergeAndApplyCartOnLogin,
+  forgotPasswordAction,
+  resetPasswordAction,
 } from "@/lib/actions/auth";
 
 describe("Google Auth Actions & Cart Merge", () => {
@@ -132,6 +138,95 @@ describe("Google Auth Actions & Cart Merge", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Google token verification failed");
+    });
+  });
+
+  describe("forgotPasswordAction", () => {
+    it("returns generic success response when email exists", async () => {
+      (mockResetPasswordOnServer as jest.Mock).mockResolvedValueOnce({
+        success: true,
+        message: "Password reset instructions have been sent to your email.",
+      });
+
+      const result = await forgotPasswordAction("existing@example.com");
+      expect(result.success).toBe(true);
+      expect(result.message).toBe(
+        "If an account exists with this email, you will receive password reset instructions shortly."
+      );
+    });
+
+    it("returns identical generic success response even when email does not exist", async () => {
+      (mockResetPasswordOnServer as jest.Mock).mockResolvedValueOnce({
+        success: false,
+        message: "User not found.",
+      });
+
+      const result = await forgotPasswordAction("nonexistent@example.com");
+      expect(result.success).toBe(true);
+      expect(result.message).toBe(
+        "If an account exists with this email, you will receive password reset instructions shortly."
+      );
+    });
+
+    it("fails with validation error when email is invalid", async () => {
+      const result = await forgotPasswordAction("not-an-email");
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Please enter a valid email address");
+      expect(mockResetPasswordOnServer).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resetPasswordAction", () => {
+    it("rejects input when validation fails (passwords mismatch)", async () => {
+      const result = await resetPasswordAction({
+        email: "user@example.com",
+        code: "code123",
+        password: "newPassword123!",
+        confirmPassword: "differentPassword456!",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Passwords do not match");
+      expect(mockChangePasswordOnServer).not.toHaveBeenCalled();
+    });
+
+    it("successfully resets password when server returns success", async () => {
+      (mockChangePasswordOnServer as jest.Mock).mockResolvedValueOnce({
+        success: true,
+        message: "Password has been reset successfully.",
+      });
+
+      const result = await resetPasswordAction({
+        email: "user@example.com",
+        code: "code123",
+        password: "newPassword123!",
+        confirmPassword: "newPassword123!",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockChangePasswordOnServer).toHaveBeenCalledWith({
+        email: "user@example.com",
+        code: "code123",
+        newPassword: "newPassword123!",
+      });
+      expect(result.message).toContain("successfully");
+    });
+
+    it("handles server error when reset code is expired or invalid", async () => {
+      (mockChangePasswordOnServer as jest.Mock).mockResolvedValueOnce({
+        success: false,
+        message: "Invalid or expired reset code.",
+      });
+
+      const result = await resetPasswordAction({
+        email: "user@example.com",
+        code: "expired_code",
+        password: "newPassword123!",
+        confirmPassword: "newPassword123!",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Invalid or expired reset code.");
     });
   });
 });

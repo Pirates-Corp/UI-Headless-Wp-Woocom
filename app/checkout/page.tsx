@@ -6,23 +6,29 @@ import Script from "next/script";
 import { useCartStore } from "@/lib/store/cart-store";
 import { useBuyNowStore } from "@/lib/store/buy-now-store";
 import { useCheckoutStore } from "@/lib/store/checkout-store";
+import { useAuthStore } from "@/lib/store/auth-store";
 import { selectShippingRate } from "@/lib/actions/cart";
 import { checkoutAction } from "@/lib/actions/checkout-submit";
+import { getAddressBookAction, getSavedBillingAction } from "@/lib/actions/address";
+import { getDefaultCountry } from "@/lib/config/countries";
 import { buttonVariants } from "@/components/ui/defaultbutton";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { DeliveryAddressForm } from "@/components/checkout/delivery-address-form";
+import { ContactSection } from "@/components/checkout/contact-section";
 import { BillingAddressForm } from "@/components/checkout/billing-address-form";
-import { ShippingAddressForm } from "@/components/checkout/shipping-address-form";
 import { ShippingMethodSelector } from "@/components/checkout/shipping-method-selector";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
 import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary";
+import { MobileCheckoutBar } from "@/components/checkout/mobile-checkout-bar";
 import { CouponInput } from "@/components/checkout/coupon-input";
 import { useAddressUpdate } from "@/lib/hooks/use-address-update";
 import { trackBeginCheckout, trackAddShippingInfo, trackAddPaymentInfo } from "@/lib/utils/gtm-events";
 import { cartItemsToEcommerceItems } from "@/lib/utils/gtm-items";
 import { t } from "@/lib/i18n";
+import type { SavedAddress, WooShippingPackage, WooShippingRate } from "@/lib/woocommerce/types";
 
 // Global type declaration for Razorpay checkout.js
 declare global {
@@ -37,6 +43,8 @@ declare global {
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const isBuyNow = searchParams?.get("buy_now") === "1" || searchParams?.get("buy_now") === "true";
+
+  const { isAuthenticated, user } = useAuthStore();
 
   const {
     cart: regularCart,
@@ -73,11 +81,73 @@ function CheckoutContent() {
   const activeApplyCoupon = isBuyNow ? buyNowApplyCoupon : regularApplyCoupon;
   const activeRemoveCoupon = isBuyNow ? buyNowRemoveCoupon : regularRemoveCoupon;
 
-  const { sameAsShipping, selectedPaymentMethod, setSelectedPaymentMethod } = useCheckoutStore();
+  const { billingSameAsShipping, selectedPaymentMethod, setSelectedPaymentMethod } = useCheckoutStore();
   const router = useRouter();
   const [checkoutState, formAction, isPending] = useActionState(checkoutAction, null);
   const [isSelectingShipping, startShippingTransition] = useTransition();
   const { isUpdatingAddress } = useAddressUpdate(activeCartToken ?? null, isBuyNow);
+
+  // Saved address state for logged-in users
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
+  const [saveAddressChecked, setSaveAddressChecked] = useState(true);
+  const [makeDefaultChecked, setMakeDefaultChecked] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("Home");
+
+  // Load saved addresses and billing on mount for logged-in users
+  useEffect(() => {
+    if (isAuthenticated) {
+      getAddressBookAction().then((res) => {
+        if (res.ok && res.data?.addresses?.length) {
+          const list = res.data.addresses;
+          setSavedAddresses(list);
+          const defaultId = res.data.default_id || list[0].id;
+          setSelectedAddressId(defaultId);
+          const defaultAddr = list.find((a) => a.id === defaultId) || list[0];
+          if (defaultAddr) {
+            const store = useCheckoutStore.getState();
+            store.updateShipping("first_name", defaultAddr.first_name);
+            store.updateShipping("last_name", defaultAddr.last_name);
+            store.updateShipping("company", defaultAddr.company || "");
+            store.updateShipping("address_1", defaultAddr.address_1);
+            store.updateShipping("address_2", defaultAddr.address_2 || "");
+            store.updateShipping("city", defaultAddr.city);
+            store.updateShipping("state", defaultAddr.state || "");
+            store.updateShipping("postcode", defaultAddr.postcode);
+            store.updateShipping("country", defaultAddr.country || getDefaultCountry());
+
+            if (!store.billing.phone && defaultAddr.phone) {
+              store.updateBilling("phone", defaultAddr.phone);
+            }
+          }
+        }
+      });
+
+      getSavedBillingAction().then((res) => {
+        if (res.ok && res.data) {
+          const saved = res.data;
+          const store = useCheckoutStore.getState();
+          if (!store.billing.email && (saved.email || user?.email)) {
+            store.updateBilling("email", saved.email || user?.email || "");
+          }
+          if (!store.billing.phone && saved.phone) {
+            store.updateBilling("phone", saved.phone);
+          }
+          if (!store.billing.address_1 && saved.address_1) {
+            store.updateBilling("first_name", saved.first_name || "");
+            store.updateBilling("last_name", saved.last_name || "");
+            store.updateBilling("company", saved.company || "");
+            store.updateBilling("address_1", saved.address_1);
+            store.updateBilling("address_2", saved.address_2 || "");
+            store.updateBilling("city", saved.city || "");
+            store.updateBilling("state", saved.state || "");
+            store.updateBilling("postcode", saved.postcode || "");
+            store.updateBilling("country", saved.country || getDefaultCountry());
+          }
+        }
+      });
+    }
+  }, [isAuthenticated, user?.email]);
 
   const isStripeMethod = selectedPaymentMethod === "stripe_cc" || selectedPaymentMethod === "stripe";
   const isRazorpayMethod = selectedPaymentMethod === "razorpay";
@@ -167,7 +237,6 @@ function CheckoutContent() {
         },
         modal: {
           ondismiss: () => {
-            // User closed the modal without completing payment
             toast.error("Payment was cancelled.");
           },
         },
@@ -187,7 +256,6 @@ function CheckoutContent() {
     } else if (checkoutState.type === "stripe_redirect") {
       window.location.href = checkoutState.url;
     } else if (checkoutState.type === "razorpay_create") {
-      // Open Razorpay Checkout modal with the order data
       handleRazorpayModal({
         razorpayOrderId: checkoutState.razorpayOrderId,
         wcOrderId: checkoutState.wcOrderId,
@@ -254,7 +322,7 @@ function CheckoutContent() {
         const c = result.cart;
         const currency = c.totals.currency_code;
         const value = parseInt(c.totals.total_price) / Math.pow(10, c.totals.currency_minor_unit);
-        const selectedRate = c.shipping_rates.flatMap((pkg) => pkg.shipping_rates).find((r) => r.selected);
+        const selectedRate = c.shipping_rates.flatMap((pkg: WooShippingPackage) => pkg.shipping_rates).find((r: WooShippingRate) => r.selected);
         trackAddShippingInfo(cartItemsToEcommerceItems(c.items), currency, value, selectedRate?.name ?? rateId);
       }
     });
@@ -283,8 +351,8 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Load Razorpay checkout.js — only when Razorpay is a viable method */}
+    <div className="container mx-auto px-4 py-8 pb-28 lg:pb-8">
+      {/* Load Razorpay checkout.js */}
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="lazyOnload"
@@ -293,19 +361,40 @@ function CheckoutContent() {
       <h1 className="text-3xl font-heading font-bold mb-8">{t("checkout.pageTitle")}</h1>
 
       <form action={formAction}>
-        {/* Side-channel data not rendered as address fields */}
+        {/* Hidden parameters */}
         <input type="hidden" name="cartToken" value={activeCartToken ?? ""} />
         <input type="hidden" name="nonce" value={activeNonce ?? ""} />
         <input type="hidden" name="cart" value={JSON.stringify(activeCart)} />
         <input type="hidden" name="paymentMethod" value={selectedPaymentMethod} />
-        <input type="hidden" name="sameAsShipping" value={sameAsShipping ? "1" : "0"} />
+        <input type="hidden" name="billingSameAsShipping" value={billingSameAsShipping ? "1" : "0"} />
+        <input type="hidden" name="sameAsShipping" value={billingSameAsShipping ? "1" : "0"} />
         <input type="hidden" name="isBuyNow" value={isBuyNow ? "1" : "0"} />
+        <input type="hidden" name="saveAddress" value={selectedAddressId === "new" && saveAddressChecked ? "1" : "0"} />
+        <input type="hidden" name="makeDefault" value={selectedAddressId === "new" && makeDefaultChecked ? "1" : "0"} />
+        <input type="hidden" name="addressLabel" value={addressLabel} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2 space-y-6">
-            <BillingAddressForm />
-            <ShippingAddressForm />
+            {/* 1. DELIVERY ADDRESS (Always visible) */}
+            <DeliveryAddressForm
+              savedAddresses={savedAddresses}
+              selectedAddressId={selectedAddressId}
+              onSelectSavedAddress={setSelectedAddressId}
+              saveAddressChecked={saveAddressChecked}
+              setSaveAddressChecked={setSaveAddressChecked}
+              makeDefaultChecked={makeDefaultChecked}
+              setMakeDefaultChecked={setMakeDefaultChecked}
+              addressLabel={addressLabel}
+              setAddressLabel={setAddressLabel}
+            />
 
+            {/* 2. CONTACT (Email, Phone) */}
+            <ContactSection />
+
+            {/* 3. BILLING ADDRESS (Collapsed by default) */}
+            <BillingAddressForm />
+
+            {/* 4. Shipping Method */}
             {activeCart.needs_shipping && activeCart.shipping_rates?.length > 0 && (
               <ShippingMethodSelector
                 shippingRates={activeCart.shipping_rates}
@@ -314,6 +403,7 @@ function CheckoutContent() {
               />
             )}
 
+            {/* 5. Payment Method */}
             {activeCart.needs_payment && parseInt(activeCart.totals?.total_price || "0") > 0 && activeCart.payment_methods?.length > 0 && (
               <PaymentMethodSelector
                 paymentMethods={activeCart.payment_methods}
@@ -325,6 +415,8 @@ function CheckoutContent() {
                 }}
               />
             )}
+
+            {/* 6. Coupon Input */}
             <CouponInput
               cart={activeCart}
               isPending={activeIsPending}
@@ -333,7 +425,8 @@ function CheckoutContent() {
             />
           </div>
 
-          <div className="lg:col-span-1">
+          {/* Desktop Sticky Order Summary Column */}
+          <aside className="lg:col-span-1 lg:sticky lg:top-20 self-start">
             <CheckoutOrderSummary
               cart={activeCart}
               isPending={isPending || isVerifyingRazorpay}
@@ -342,8 +435,18 @@ function CheckoutContent() {
               isStripeMethod={isStripeMethod}
               isRazorpayMethod={isRazorpayMethod}
             />
-          </div>
+          </aside>
         </div>
+
+        {/* Mobile Sticky Checkout Pay Bar with Total Price */}
+        <MobileCheckoutBar
+          cart={activeCart}
+          isPending={isPending || isVerifyingRazorpay}
+          isUpdatingAddress={isUpdatingAddress}
+          isSelectingShipping={isSelectingShipping}
+          isStripeMethod={isStripeMethod}
+          isRazorpayMethod={isRazorpayMethod}
+        />
       </form>
     </div>
   );

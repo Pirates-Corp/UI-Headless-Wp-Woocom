@@ -289,5 +289,30 @@ describe("OrderConfirmationParamsSchema", () => {
       expect(res.data.buy_now).toBeUndefined();
     }
   });
+
+  it("accepts ref='email' parameter from transactional emails", () => {
+    const res = OrderConfirmationParamsSchema.safeParse({
+      order_id: "42",
+      order_key: "wc_order_abc123",
+      billing_email: "buyer@example.com",
+      ref: "email",
+    });
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.ref).toBe("email");
+    }
+  });
+
+  it("coerces excessively long ref string to undefined", () => {
+    const res = OrderConfirmationParamsSchema.safeParse({
+      order_id: "42",
+      ref: "a".repeat(51),
+    });
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.ref).toBeUndefined();
+    }
+  });
 });
+
 

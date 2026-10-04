@@ -49,6 +49,33 @@ export const ShippingSchema = z.object({
     .default(""),
 });
 
+export const SavedAddressInputSchema = z.object({
+  label: z
+    .string()
+    .max(100)
+    .default("Home")
+    .transform((val) => val.trim() || "Home"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  company: z.string().default(""),
+  phone: z.string().default(""),
+  address_1: z.string().min(1, "Address is required"),
+  address_2: z.string().default(""),
+  city: z.string().min(1, "City is required"),
+  state: z.string().default(""),
+  postcode: z
+    .string()
+    .min(1, "Postcode is required")
+    .regex(PostcodeRegex, "Postcode must be exactly 6 digits"),
+  country: z
+    .string()
+    .min(2, "Country is required")
+    .refine((val) => isCountryAllowed(val), {
+      message: "Selected country is not allowed for checkout",
+    }),
+  is_default: z.boolean().default(false),
+});
+
 /**
  * Loose address schema used for shipping estimate updates — all fields optional
  * strings, no field can exceed 255 characters to prevent oversized payloads.
@@ -127,19 +154,41 @@ export type CheckoutFormValues = z.infer<typeof CheckoutFormSchema>;
  * components can apply their own defaults without crashing.
  */
 export const ShopParamsSchema = z.object({
-  page: z.string().regex(/^\d+$/).optional().catch(undefined),
+  page: z.string().regex(/^[1-9]\d*$/).optional().catch(undefined),
   orderby: z
-    .enum(["date", "price", "price-desc", "rating", "popularity", "alphabetical"])
+    .enum(["date", "price", "rating", "popularity"])
     .optional()
     .catch(undefined),
   order: z.enum(["asc", "desc"]).optional().catch(undefined),
   on_sale: z.enum(["true", "false"]).optional().catch(undefined),
   // Category slugs: lowercase letters, digits, hyphens only
+  // Brand slugs use the same safe taxonomy format as categories.
+  brand: z.string().regex(/^[a-z0-9-]{1,100}$/).optional().catch(undefined),
   category: z
     .string()
     .regex(/^[a-z0-9-]{1,100}$/)
     .optional()
     .catch(undefined),
+  tag: z.string().regex(/^[1-9]\d*$/).optional().catch(undefined),
+  min_price: z
+    .string()
+    .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
+    .optional()
+    .catch(undefined),
+  max_price: z
+    .string()
+    .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
+    .optional()
+    .catch(undefined),
+}).transform((params) => {
+  const min = params.min_price === undefined ? undefined : Number(params.min_price);
+  const max = params.max_price === undefined ? undefined : Number(params.max_price);
+  if (min !== undefined && min > 5000) params.min_price = undefined;
+  if (max !== undefined && max > 5000) params.max_price = undefined;
+  if (min !== undefined && max !== undefined && min > max) {
+    return { ...params, min_price: undefined, max_price: undefined };
+  }
+  return params;
 });
 
 // ── Search query ──────────────────────────────────────────────────────────────
@@ -170,6 +219,7 @@ export const OrderConfirmationParamsSchema = z.object({
     .catch(undefined),
   billing_email: z.email().optional().catch(undefined),
   buy_now: z.enum(["1", "true"]).optional().catch(undefined),
+  ref: z.string().max(50).optional().catch(undefined),
 });
 
 // ── Razorpay payment verification ────────────────────────────────────────────
@@ -197,3 +247,49 @@ export const RazorpayVerifySchema = z.object({
   /** Customer billing email for order confirmation redirect */
   billing_email: z.string().email().optional(),
 });
+
+// ── Product Review Schema ───────────────────────────────────────────────────
+
+export const CreateProductReviewSchema = z.object({
+  productId: z.number().int().positive("A valid product ID is required"),
+  rating: z
+    .number()
+    .int()
+    .min(1, "Please select a rating between 1 and 5 stars")
+    .max(5, "Rating cannot exceed 5 stars"),
+  review: z
+    .string()
+    .trim()
+    .min(5, "Review must be at least 5 characters")
+    .max(2000, "Review cannot exceed 2000 characters"),
+  reviewer: z
+    .string()
+    .trim()
+    .min(1, "Reviewer name is required")
+    .max(100, "Name is too long"),
+  reviewerEmail: z
+    .string()
+    .trim()
+    .email("A valid email address is required"),
+});
+
+export type CreateProductReviewInput = z.infer<typeof CreateProductReviewSchema>;
+
+export const UpdateProductReviewSchema = z.object({
+  reviewId: z.number().int().positive("A valid review ID is required"),
+  productId: z.number().int().positive("A valid product ID is required"),
+  rating: z
+    .number()
+    .int()
+    .min(1, "Please select a rating between 1 and 5 stars")
+    .max(5, "Rating cannot exceed 5 stars"),
+  review: z
+    .string()
+    .trim()
+    .min(5, "Review must be at least 5 characters")
+    .max(2000, "Review cannot exceed 2000 characters"),
+});
+
+export type UpdateProductReviewInput = z.infer<typeof UpdateProductReviewSchema>;
+
+

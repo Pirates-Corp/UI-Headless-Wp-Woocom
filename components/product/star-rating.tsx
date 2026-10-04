@@ -1,36 +1,97 @@
 import { cn } from "@/lib/utils";
+import { Star } from "lucide-react";
 
 interface StarRatingProps {
-  rating: string;
-  count: number;
+  rating: string | number;
+  count?: number;
+  showCount?: boolean;
+  size?: "sm" | "md" | "lg";
+  interactiveLink?: boolean;
+  className?: string;
 }
 
-export function StarRating({ rating, count }: StarRatingProps) {
-  const value = parseFloat(rating);
-  if (value === 0 && count === 0) return null;
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex" aria-hidden="true">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <svg
-            key={star}
-            className={cn(
-              "h-4 w-4",
-              star <= Math.round(value) ? "text-[var(--gold)]" : "text-border"
-            )}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        ))}
+export function StarRating({
+  rating,
+  count = 0,
+  showCount = true,
+  size = "md",
+  interactiveLink = true,
+  className,
+}: StarRatingProps) {
+  const numRating = typeof rating === "string" ? parseFloat(rating || "0") : rating;
+  const safeRating = isNaN(numRating) ? 0 : numRating;
+  const safeCount = typeof count === "number" && !isNaN(count) ? count : 0;
+
+  const starSizes = {
+    sm: "w-3.5 h-3.5",
+    md: "w-4 h-4",
+    lg: "w-5 h-5",
+  };
+
+  const textSizes = {
+    sm: "text-xs",
+    md: "text-sm",
+    lg: "text-base font-semibold",
+  };
+
+  const content = (
+    <div
+      className={cn(
+        "inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted/40 border border-border/80 hover:border-[var(--gold)]/60 hover:bg-muted/60 transition-all duration-150 group/rating cursor-pointer",
+        className
+      )}
+    >
+      {/* 5 Stars with visible borders on dark & light themes */}
+      <div className="flex items-center gap-1" aria-hidden="true">
+        {[1, 2, 3, 4, 5].map((star) => {
+          const isFilled = star <= Math.round(safeRating);
+          return (
+            <Star
+              key={star}
+              className={cn(
+                starSizes[size],
+                "transition-all duration-150 stroke-[1.5]",
+                isFilled
+                  ? "fill-[var(--gold)] text-[var(--gold)] drop-shadow-[0_0_5px_rgba(212,175,55,0.4)]"
+                  : "text-amber-500/70 dark:text-amber-400/80 fill-amber-500/10 dark:fill-amber-400/10 stroke-current"
+              )}
+            />
+          );
+        })}
       </div>
-      <span
-        className="text-sm text-muted-foreground"
-        aria-label={`Rated ${value.toFixed(1)} out of 5, ${count} ${count === 1 ? "review" : "reviews"}`}
-      >
-        {value.toFixed(1)} ({count} {count === 1 ? "review" : "reviews"})
-      </span>
+
+      {/* Numerical rating & Count in brackets */}
+      {showCount && (
+        <span
+          className={cn(
+            textSizes[size],
+            "text-muted-foreground group-hover/rating:text-foreground transition-colors font-medium flex items-center gap-1.5"
+          )}
+          aria-label={`Rated ${safeRating.toFixed(1)} out of 5 stars, ${safeCount} ${safeCount === 1 ? "review" : "reviews"}`}
+        >
+          {safeRating > 0 && (
+            <span className="font-semibold text-foreground">
+              {safeRating.toFixed(1)}
+            </span>
+          )}
+          <span className="text-muted-foreground group-hover/rating:text-foreground">
+            ({safeCount})
+          </span>
+        </span>
+      )}
     </div>
   );
+
+  if (interactiveLink) {
+    return (
+      <a
+        href="#reviews"
+        className="inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg transition-opacity hover:opacity-95"
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return content;
 }
