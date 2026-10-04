@@ -6,6 +6,22 @@ import type { OrderTrackingInfo } from "@/lib/woocommerce/shipping-types";
 import { getCurrencySettings, getCurrencySymbol } from "@/lib/woocommerce/api";
 import type { CurrencySettings } from "@/lib/woocommerce/types";
 import { decodeHtml } from "@/lib/utils/format";
+import {
+  canCancelOrder,
+  canReturnOrder,
+  getReturnDeadline,
+} from "@/lib/orders/eligibility";
+import {
+  getWooOrder,
+  updateWooOrderStatus,
+  addWooOrderNote,
+  updateWooOrderMeta,
+  createWooRefund,
+  type RawWooOrder,
+} from "@/lib/woocommerce/orders";
+import { refundRazorpayPayment } from "@/lib/razorpay-server";
+import { refundStripePayment } from "@/lib/stripe-server";
+import { CancelOrderSchema } from "@/lib/validation/schemas";
 
 export interface CustomerOrderLineItem {
   id: number;
@@ -32,6 +48,15 @@ export interface CustomerOrderSummary {
   currencyMinorUnit: number;
   itemCount: number;
   paymentMethodTitle: string;
+  paymentMethod: string;
+  isPrepaid: boolean;
+  shipmentAwb?: string;
+  shipmentStatusId?: string | number;
+  deliveredAt?: string;
+  refundStatus?: "initiated" | "processed" | "failed";
+  canCancel: boolean;
+  canReturn: boolean;
+  returnDeadline?: string;
   lineItems: CustomerOrderLineItem[];
 }
 
@@ -57,15 +82,31 @@ interface RawOrder {
   status?: string;
   date_created?: string;
   date_created_gmt?: string;
+  date_paid?: string | null;
+  date_completed?: string | null;
+  shipping_total?: string;
   total?: string;
   currency?: string;
   currency_symbol?: string;
   payment_method_title?: string;
   payment_method?: string;
+  transaction_id?: string;
   billing?: {
     email?: string;
   };
   line_items?: RawLineItem[];
+  meta_data?: Array<{ id?: number; key: string; value: unknown }>;
+  refunds?: Array<{ id?: number; reason?: string; total?: string }>;
+}
+
+function getMetaValue(
+  metaData?: Array<{ key: string; value: unknown }>,
+  key?: string
+): string | undefined {
+  if (!Array.isArray(metaData) || !key) return undefined;
+  const item = metaData.find((m) => m.key === key);
+  if (item === undefined || item.value === undefined || item.value === null) return undefined;
+  return String(item.value);
 }
 
 /**
@@ -126,10 +167,6 @@ export async function getCustomerOrdersAction(): Promise<{
     }
 
     // 2. Fallback: Fetch legacy guest orders matching the account email.
-    // Note: This fallback exists only for legacy guest orders placed prior to customer_id assignment
-    // and can be removed once old orders are reassigned.
-    // Only accepts orders where customer_id === 0 (true guest orders) AND billing email equals account email.
-    // Skips any order whose customer_id belongs to a different non-zero user.
     if (user.email) {
       try {
         const emailUrl = new URL(baseUrl);
@@ -145,7 +182,6 @@ export async function getCustomerOrdersAction(): Promise<{
             const userEmailLower = user.email.toLowerCase().trim();
             for (const o of emailData) {
               if (o?.id) {
-                // If already captured by primary customer query, skip
                 if (orderMap.has(o.id)) continue;
 
                 const orderCustomerId =
@@ -154,8 +190,6 @@ export async function getCustomerOrdersAction(): Promise<{
                     : Number(o.customer_id ?? 0);
                 const billingEmail = o.billing?.email?.toLowerCase().trim();
 
-                // Tightened fallback: accept ONLY true guest orders (customer_id === 0)
-                // where the billing email equals the authenticated account email.
                 if (orderCustomerId === 0 && billingEmail === userEmailLower) {
                   orderMap.set(o.id, o);
                 }
@@ -220,6 +254,186 @@ export async function getOrderTrackingAction(orderId: number): Promise<{
   }
 }
 
+/**
+ * Cancel an order requested by the authenticated customer.
+ */
+export async function cancelOrderAction(
+  orderId: number,
+  reason: string,
+  note?: string
+): Promise<{
+  success: boolean;
+  status?: string;
+  refundStatus?: "initiated" | "processed" | "failed";
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const validated = CancelOrderSchema.safeParse({ orderId, reason, note });
+    if (!validated.success) {
+      return {
+        success: false,
+        error: validated.error.issues[0]?.message || "Invalid cancellation request",
+      };
+    }
+
+    const user = await getSessionUser();
+    if (!user) {
+      return {
+        success: false,
+        error: "You must be signed in to cancel an order.",
+      };
+    }
+
+    // 2. Fetch fresh order
+    let order: RawWooOrder;
+    try {
+      order = await getWooOrder(orderId);
+    } catch {
+      return {
+        success: false,
+        error: "Order not found.",
+      };
+    }
+
+    // Check ownership
+    const orderCustomerId =
+      typeof order.customer_id === "number" ? order.customer_id : Number(order.customer_id ?? 0);
+    const userCustomerId = Number(user.id || 0);
+
+    const isCustomerMatch = userCustomerId > 0 && orderCustomerId === userCustomerId;
+    const isGuestEmailMatch =
+      orderCustomerId === 0 &&
+      Boolean(user.email && order.billing?.email?.toLowerCase().trim() === user.email.toLowerCase().trim());
+
+    if (!isCustomerMatch && !isGuestEmailMatch) {
+      return {
+        success: false,
+        error: "You do not have permission to cancel this order.",
+      };
+    }
+
+    // 3. Idempotent check
+    const currentStatus = (order.status || "").toLowerCase().replace(/^wc-/, "");
+    const existingRefundStatus = getMetaValue(order.meta_data, "_myapp_refund_status") as
+      | "initiated"
+      | "processed"
+      | "failed"
+      | undefined;
+
+    if (currentStatus === "cancelled" || currentStatus === "refunded") {
+      return {
+        success: true,
+        status: currentStatus,
+        refundStatus: existingRefundStatus,
+        message: "Order is already cancelled.",
+      };
+    }
+
+    // 4. Re-run eligibility on fresh data
+    const shipmentAwb = getMetaValue(order.meta_data, "_myapp_shiprocket_awb");
+    if (!canCancelOrder({ status: currentStatus, shipmentAwb })) {
+      return {
+        success: false,
+        error: "This order can no longer be cancelled because shipment has already been initiated.",
+      };
+    }
+
+    // 5. Update status to cancelled and add note
+    await updateWooOrderStatus(orderId, "cancelled");
+    const noteText = `Cancelled by customer. Reason: ${reason}${note ? ` | Note: ${note}` : ""}`;
+    await addWooOrderNote(orderId, noteText);
+
+    // 6. Check if prepaid
+    const paymentMethod = (order.payment_method || "").toLowerCase();
+    const isPrepaid = Boolean(
+      (order.transaction_id && order.transaction_id.trim() !== "" && paymentMethod !== "cod" && paymentMethod !== "bacs") ||
+      (order.date_paid && paymentMethod !== "cod" && paymentMethod !== "bacs")
+    );
+
+    if (!isPrepaid) {
+      // COD / offline order - cancellation only, no gateway refund
+      return {
+        success: true,
+        status: "cancelled",
+        message: "Your order has been cancelled successfully.",
+      };
+    }
+
+    // Prepaid order - execute gateway refund
+    await updateWooOrderMeta(orderId, [{ key: "_myapp_refund_status", value: "initiated" }]);
+
+    const totalAmount = parseFloat(order.total || "0");
+    const amountMinor = Math.round(totalAmount * 100);
+    const transactionId = order.transaction_id || "";
+    const gateway = (getMetaValue(order.meta_data, "_myapp_gateway") || paymentMethod || "").toLowerCase();
+
+    try {
+      let refundId = "";
+      if (gateway.includes("razorpay") || transactionId.startsWith("pay_")) {
+        const rzpRefund = await refundRazorpayPayment(transactionId, amountMinor, {
+          wc_order_id: String(orderId),
+        });
+        refundId = rzpRefund.id;
+      } else if (gateway.includes("stripe") || transactionId.startsWith("pi_") || transactionId.startsWith("ch_")) {
+        const stripeRefund = await refundStripePayment(transactionId, amountMinor, `cancel-${orderId}`);
+        refundId = stripeRefund.id;
+      } else {
+        throw new Error(`Unsupported payment gateway for automatic refund: ${gateway || "unknown"}`);
+      }
+
+      // Save refund ID and mark refund processed
+      await updateWooOrderMeta(orderId, [
+        { key: "_myapp_refund_id", value: refundId },
+        { key: "_myapp_refund_status", value: "processed" },
+      ]);
+
+      // Record refund in WooCommerce
+      try {
+        await createWooRefund(orderId, {
+          amount: totalAmount,
+          reason: `Customer cancellation: ${reason}`,
+        });
+      } catch (refundErr) {
+        console.warn("[cancelOrderAction] WooCommerce refund record creation warning:", refundErr);
+      }
+
+      return {
+        success: true,
+        status: "refunded",
+        refundStatus: "processed",
+        message: "Your order has been cancelled and the full refund has been initiated.",
+      };
+    } catch (refundErr) {
+      console.error(`[cancelOrderAction] Gateway refund failed for order ${orderId}:`, refundErr);
+      const errMessage = refundErr instanceof Error ? refundErr.message : "Gateway error";
+
+      await updateWooOrderMeta(orderId, [
+        { key: "_myapp_refund_status", value: "failed" },
+        { key: "_myapp_refund_pending", value: 1 },
+      ]);
+      await addWooOrderNote(
+        orderId,
+        `Gateway refund failed (${errMessage}). Manual refund required.`
+      );
+
+      return {
+        success: true,
+        status: "cancelled",
+        refundStatus: "failed",
+        message:
+          "Your order has been cancelled. Our support team will process your refund manually.",
+      };
+    }
+  } catch (error: unknown) {
+    console.error("[cancelOrderAction] Unexpected error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to cancel order",
+    };
+  }
+}
+
 function formatOrders(
   rawOrders: RawOrder[],
   storeCurrency: CurrencySettings
@@ -253,6 +467,39 @@ function formatOrders(
         ? ""
         : storeCurrency.suffix || "";
 
+    const paymentMethod = order.payment_method || "online";
+    const isPrepaid = Boolean(
+      (order.transaction_id && order.transaction_id.trim() !== "" && paymentMethod !== "cod" && paymentMethod !== "bacs") ||
+      (order.date_paid && paymentMethod !== "cod" && paymentMethod !== "bacs")
+    );
+
+    const shipmentAwb = getMetaValue(order.meta_data, "_myapp_shiprocket_awb");
+    const shipmentStatusId = getMetaValue(order.meta_data, "_myapp_shiprocket_status_id");
+    const deliveredAt =
+      getMetaValue(order.meta_data, "_myapp_delivered_at") ||
+      order.date_completed ||
+      undefined;
+
+    const rawRefundStatus = getMetaValue(order.meta_data, "_myapp_refund_status");
+    const refundStatus: "initiated" | "processed" | "failed" | undefined =
+      rawRefundStatus === "initiated" || rawRefundStatus === "processed" || rawRefundStatus === "failed"
+        ? rawRefundStatus
+        : undefined;
+
+    const canCancel = canCancelOrder({
+      status: order.status || "pending",
+      shipmentAwb,
+    });
+
+    const canReturn = canReturnOrder({
+      status: order.status || "pending",
+      deliveredAt,
+    });
+
+    const returnDeadline = getReturnDeadline({
+      deliveredAt,
+    });
+
     return {
       id: order.id,
       number: String(order.number || order.id),
@@ -266,7 +513,17 @@ function formatOrders(
       currencyMinorUnit: storeCurrency.minor_unit ?? 2,
       itemCount,
       paymentMethodTitle: order.payment_method_title || order.payment_method || "Online",
+      paymentMethod,
+      isPrepaid,
+      shipmentAwb,
+      shipmentStatusId,
+      deliveredAt,
+      refundStatus,
+      canCancel,
+      canReturn,
+      returnDeadline,
       lineItems,
     };
   });
 }
+

@@ -315,6 +315,49 @@ export const en: Record<string, string> = {
   "resetPassword.invalidLinkDesc": "This password reset link is invalid, incomplete, or has expired. Please request a new one.",
   "resetPassword.requestNewLink": "Request New Reset Link",
   "resetPassword.backToLogin": "Back to Sign In",
+
+  // ── Orders Cancellation, Refunds & Returns ────────────────────────────────
+  "orders.cancelButton": "Cancel order",
+  "orders.cancelDialogTitle": "Cancel Order",
+  "orders.cancelDialogDesc": "Are you sure you want to cancel this order? Once cancelled, this action cannot be undone.",
+  "orders.cancelReasonLabel": "Reason for cancellation",
+  "orders.cancelReasonPlaceholder": "Select a reason...",
+  "orders.cancelNoteLabel": "Additional comments (optional)",
+  "orders.cancelNotePlaceholder": "Let us know if you have any additional feedback...",
+  "orders.cancelConfirmButton": "Confirm Cancellation",
+  "orders.cancelInProgress": "Cancelling order...",
+  "orders.cancelSuccessToast": "Order cancelled successfully.",
+  "orders.supportHintAwb": "Shipment in progress. Need help? Contact us on WhatsApp.",
+
+  "orders.status.pending": "Pending",
+  "orders.status.processing": "Processing",
+  "orders.status.onHold": "On Hold",
+  "orders.status.completed": "Delivered",
+  "orders.status.cancelled": "Cancelled",
+  "orders.status.refunded": "Refunded",
+  "orders.status.failed": "Failed",
+  "orders.status.shipped": "Shipped",
+  "orders.status.rto": "Returned to Origin",
+  "orders.status.returnRequested": "Return Requested",
+  "orders.status.returnApproved": "Return Approved",
+  "orders.status.returnReceived": "Return Received",
+  "orders.status.returnRejected": "Return Rejected",
+
+  "orders.refund.initiated": "Refund initiated",
+  "orders.refund.processed": "Refund completed",
+  "orders.refund.failed": "Refund pending, our team will contact you",
+
+  "orders.cancelReasons.ordered_by_mistake": "Ordered by mistake",
+  "orders.cancelReasons.found_better_price": "Found better price elsewhere",
+  "orders.cancelReasons.delivery_too_slow": "Delivery time is too long",
+  "orders.cancelReasons.changed_mind": "Changed my mind",
+  "orders.cancelReasons.other": "Other reason",
+
+  "orders.returnReasons.damaged": "Item arrived damaged",
+  "orders.returnReasons.defective": "Item is defective / not working",
+  "orders.returnReasons.wrong_item": "Received wrong item",
+  "orders.returnReasons.changed_mind": "Changed my mind",
+  "orders.returnReasons.other": "Other reason",
 };
 
 

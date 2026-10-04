@@ -292,4 +292,37 @@ export const UpdateProductReviewSchema = z.object({
 
 export type UpdateProductReviewInput = z.infer<typeof UpdateProductReviewSchema>;
 
+// ── Order Cancellation & Return Schemas ─────────────────────────────────────
+
+export const CancelOrderSchema = z.object({
+  orderId: z.number().int().positive("A valid order ID is required"),
+  reason: z.string().trim().min(1, "Cancellation reason is required").max(200),
+  note: z.string().trim().max(500).optional(),
+});
+
+export type CancelOrderInput = z.infer<typeof CancelOrderSchema>;
+
+export const ReturnOrderItemSchema = z.object({
+  id: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+});
+
+export const ReturnOrderSchema = z.object({
+  orderId: z.number().int().positive("A valid order ID is required"),
+  reason: z.string().trim().min(1, "Return reason is required").max(200),
+  note: z.string().trim().max(1000).optional(),
+  items: z.array(ReturnOrderItemSchema).min(1, "At least one item must be selected").optional(),
+  photoUrls: z.array(z.string().url()).max(4).optional(),
+  refundAccount: z
+    .object({
+      accountHolder: z.string().trim().min(1).max(100).optional(),
+      accountNumber: z.string().trim().min(1).max(50).optional(),
+      ifscCode: z.string().trim().min(1).max(20).optional(),
+      upiId: z.string().trim().min(1).max(50).optional(),
+    })
+    .optional(),
+});
+
+export type ReturnOrderInput = z.infer<typeof ReturnOrderSchema>;
+
 
