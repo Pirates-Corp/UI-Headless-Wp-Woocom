@@ -5,6 +5,7 @@ import { CartStoreInitializer } from "@/components/cart-store-initializer";
 import { AuthStoreInitializer } from "@/components/auth/auth-store-initializer";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { WhatsAppFloatingButton } from "@/components/whatsapp-floating-button";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleTagManagerLoader from "@/components/analytics/google-tag-manager";
 import { WebVitals } from "@/components/analytics/web-vitals";
@@ -94,6 +95,7 @@ export default function RootLayout({
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          <WhatsAppFloatingButton />
           <Toaster />
         </ThemeProvider>
       </body>

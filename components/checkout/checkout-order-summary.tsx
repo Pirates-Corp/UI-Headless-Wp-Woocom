@@ -8,6 +8,7 @@ import { Lock, Tag } from "lucide-react";
 import { CartTotals } from "@/components/cart/cart-totals";
 import type { WooCart } from "@/lib/woocommerce/types";
 import { t } from "@/lib/i18n";
+import Link from "next/link";
 
 interface CheckoutOrderSummaryProps {
   cart: WooCart;
@@ -92,24 +93,43 @@ export function CheckoutOrderSummary({
           </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          size="lg"
-          disabled={isPending || isUpdatingAddress || isSelectingShipping}
-        >
-          {isPending
-            ? t('checkout.processing')
-            : isUpdatingAddress
-            ? t('checkout.recalculating')
-            : !cart.needs_payment || parseInt(cart.totals?.total_price || "0") <= 0
-            ? t('checkout.freeOrder')
-            : isStripeMethod
-            ? t('checkout.payWithStripe')
-            : isRazorpayMethod
-            ? t('checkout.payWithRazorpay')
-            : t('checkout.placeOrder')}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={isPending || isUpdatingAddress || isSelectingShipping}
+          >
+            {isPending
+              ? t('checkout.processing')
+              : isUpdatingAddress
+              ? t('checkout.recalculating')
+              : !cart.needs_payment || parseInt(cart.totals?.total_price || "0") <= 0
+              ? t('checkout.freeOrder')
+              : isStripeMethod
+              ? t('checkout.payWithStripe')
+              : isRazorpayMethod
+              ? t('checkout.payWithRazorpay')
+              : t('checkout.placeOrder')}
+          </Button>
+          <p className="px-2 text-center text-xs leading-5 text-muted-foreground">
+            {t('checkout.legalAgreementPrefix')}{" "}
+            <Link
+              href="/legal/privacy-policy"
+              className="rounded-sm underline underline-offset-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t('checkout.privacyPolicyLink')}
+            </Link>{" "}
+            {t('checkout.legalAgreementAnd')}{" "}
+            <Link
+              href="/legal/terms-and-conditions"
+              className="rounded-sm underline underline-offset-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t('checkout.termsAndConditionsLink')}
+            </Link>
+            .
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
