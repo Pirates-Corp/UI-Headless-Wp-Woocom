@@ -360,3 +360,114 @@ describe("OrdersPageContent Review Feature", () => {
     });
   });
 });
+
+describe("OrdersPageContent Order Cancellation Feature", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useAuthStore as unknown as jest.Mock).mockReturnValue({
+      isAuthenticated: true,
+      isInitialized: true,
+      user: {
+        id: "1",
+        email: "alice@example.com",
+        displayName: "Alice Smith",
+        firstName: "Alice",
+      },
+    });
+  });
+
+  it("displays 'Cancel order' button when canCancel is true", async () => {
+    (getCustomerOrdersAction as jest.Mock).mockResolvedValue({
+      success: true,
+      orders: [
+        {
+          id: 301,
+          number: "301",
+          status: "processing",
+          canCancel: true,
+          dateCreated: "2026-09-20",
+          total: "1500",
+          currency: "INR",
+          currencySymbol: "₹",
+          currencyPrefix: "₹",
+          currencySuffix: "",
+          currencyMinorUnit: 2,
+          itemCount: 1,
+          paymentMethodTitle: "Razorpay",
+          lineItems: [
+            {
+              id: 20,
+              productId: 601,
+              name: "Fragrance Set",
+              quantity: 1,
+              total: "1500",
+              price: 1500,
+            },
+          ],
+        },
+      ],
+    });
+
+    (getCustomerReviewedProductsAction as jest.Mock).mockResolvedValue({
+      success: true,
+      reviewedProducts: [],
+    });
+
+    render(<OrdersPageContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Order #301")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /cancel order/i })).toBeInTheDocument();
+    });
+  });
+
+  it("does not display 'Cancel order' button when canCancel is false and displays WhatsApp support hint when AWB exists", async () => {
+    (getCustomerOrdersAction as jest.Mock).mockResolvedValue({
+      success: true,
+      orders: [
+        {
+          id: 302,
+          number: "302",
+          status: "processing",
+          canCancel: false,
+          shipmentAwb: "SR999111",
+          dateCreated: "2026-09-20",
+          total: "1500",
+          currency: "INR",
+          currencySymbol: "₹",
+          currencyPrefix: "₹",
+          currencySuffix: "",
+          currencyMinorUnit: 2,
+          itemCount: 1,
+          paymentMethodTitle: "Razorpay",
+          lineItems: [
+            {
+              id: 21,
+              productId: 602,
+              name: "Fragrance Set 2",
+              quantity: 1,
+              total: "1500",
+              price: 1500,
+            },
+          ],
+        },
+      ],
+    });
+
+    (getCustomerReviewedProductsAction as jest.Mock).mockResolvedValue({
+      success: true,
+      reviewedProducts: [],
+    });
+
+    render(<OrdersPageContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Order #302")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /cancel order/i })).not.toBeInTheDocument();
+      expect(screen.getByText(/shipment in progress/i)).toBeInTheDocument();
+      expect(screen.getByText(/whatsapp/i)).toBeInTheDocument();
+    });
+  });
+});
+
+

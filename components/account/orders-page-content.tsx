@@ -13,9 +13,14 @@ import {
   getCustomerReviewedProductsAction,
   type ReviewedProductSummary,
 } from "@/lib/actions/reviews";
-import type { WooProductReview } from "@/lib/woocommerce/types";
 import { OrderTrackingView } from "@/components/account/order-tracking-view";
 import { WriteReviewDialog } from "@/components/account/write-review-dialog";
+import { CancelOrderDialog } from "@/components/account/cancel-order-dialog";
+import { ReturnRequestDialog } from "@/components/account/return-request-dialog";
+import { getWhatsAppChatUrl } from "@/lib/utils/whatsapp";
+import type { WooProductReview } from "@/lib/woocommerce/types";
+
+import { t } from "@/lib/i18n";
 import {
   Package,
   ShoppingBag,
@@ -32,6 +37,7 @@ import {
   ChevronUp,
   Star,
   Edit3,
+  RotateCcw,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/defaultbutton";
 import { Badge } from "@/components/ui/badge";
@@ -39,21 +45,35 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/format";
 
 function StatusBadge({ status }: { status: string }) {
-  const normalized = status.toLowerCase();
+  const normalized = status.toLowerCase().replace(/^wc-/, "");
 
   switch (normalized) {
     case "completed":
       return (
         <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1 text-xs">
           <CheckCircle2 className="w-3 h-3" />
-          Completed
+          {t("orders.status.completed", "Delivered")}
         </Badge>
       );
     case "processing":
       return (
         <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30 gap-1 text-xs">
           <Clock className="w-3 h-3" />
-          Processing
+          {t("orders.status.processing", "Processing")}
+        </Badge>
+      );
+    case "shipped":
+      return (
+        <Badge className="bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30 gap-1 text-xs">
+          <Truck className="w-3 h-3" />
+          {t("orders.status.shipped", "Shipped")}
+        </Badge>
+      );
+    case "rto":
+      return (
+        <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1 text-xs">
+          <RotateCcw className="w-3 h-3" />
+          {t("orders.status.rto", "Returned to Origin")}
         </Badge>
       );
     case "on-hold":
@@ -61,15 +81,56 @@ function StatusBadge({ status }: { status: string }) {
       return (
         <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1 text-xs">
           <Clock className="w-3 h-3" />
-          Pending
+          {t("orders.status.pending", "Pending")}
         </Badge>
       );
     case "cancelled":
+      return (
+        <Badge className="bg-destructive/15 text-destructive border-destructive/30 gap-1 text-xs">
+          <XCircle className="w-3 h-3" />
+          {t("orders.status.cancelled", "Cancelled")}
+        </Badge>
+      );
+    case "refunded":
+      return (
+        <Badge className="bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30 gap-1 text-xs">
+          <RotateCcw className="w-3 h-3" />
+          {t("orders.status.refunded", "Refunded")}
+        </Badge>
+      );
+    case "return-requested":
+      return (
+        <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1 text-xs">
+          <Clock className="w-3 h-3" />
+          {t("orders.status.returnRequested", "Return Requested")}
+        </Badge>
+      );
+    case "return-approved":
+      return (
+        <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30 gap-1 text-xs">
+          <CheckCircle2 className="w-3 h-3" />
+          {t("orders.status.returnApproved", "Return Approved")}
+        </Badge>
+      );
+    case "return-received":
+      return (
+        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1 text-xs">
+          <CheckCircle2 className="w-3 h-3" />
+          {t("orders.status.returnReceived", "Return Received")}
+        </Badge>
+      );
+    case "return-rejected":
+      return (
+        <Badge className="bg-destructive/15 text-destructive border-destructive/30 gap-1 text-xs">
+          <XCircle className="w-3 h-3" />
+          {t("orders.status.returnRejected", "Return Rejected")}
+        </Badge>
+      );
     case "failed":
       return (
         <Badge className="bg-destructive/15 text-destructive border-destructive/30 gap-1 text-xs">
           <XCircle className="w-3 h-3" />
-          {status}
+          {t("orders.status.failed", "Failed")}
         </Badge>
       );
     default:
@@ -116,12 +177,31 @@ export function OrdersPageContent() {
     useState<ReviewedProductSummary | null>(null);
   const [selectedReviewOrderNumber, setSelectedReviewOrderNumber] = useState<string>("");
 
+  // Cancel Dialog State
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [selectedCancelOrder, setSelectedCancelOrder] = useState<CustomerOrderSummary | null>(null);
+
+  // Return Dialog State
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
+  const [selectedReturnOrder, setSelectedReturnOrder] = useState<CustomerOrderSummary | null>(null);
+
   const toggleTracking = (orderId: number) => {
     setExpandedTracking((prev) => ({
       ...prev,
       [orderId]: !prev[orderId],
     }));
   };
+
+  const handleOpenCancelModal = (order: CustomerOrderSummary) => {
+    setSelectedCancelOrder(order);
+    setIsCancelOpen(true);
+  };
+
+  const handleOpenReturnModal = (order: CustomerOrderSummary) => {
+    setSelectedReturnOrder(order);
+    setIsReturnOpen(true);
+  };
+
 
   const handleOpenReviewModal = (
     item: CustomerOrderLineItem,
@@ -137,6 +217,35 @@ export function OrdersPageContent() {
     setSelectedReviewOrderNumber(orderNumber);
     setSelectedExistingReview(existingReview || null);
     setIsReviewOpen(true);
+  };
+
+  const loadOrders = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await getCustomerOrdersAction();
+      if (!result.success) {
+        setError(result.error || "Failed to load orders");
+      } else {
+        setOrders(result.orders);
+        try {
+          const reviewsRes = await getCustomerReviewedProductsAction();
+          if (reviewsRes.success && reviewsRes.reviewedProducts) {
+            const map = new Map<number, ReviewedProductSummary>();
+            for (const r of reviewsRes.reviewedProducts) {
+              map.set(r.productId, r);
+            }
+            setReviewedProductsMap(map);
+          }
+        } catch (revErr) {
+          console.warn("[OrdersPageContent] Failed to fetch customer reviews:", revErr);
+        }
+      }
+    } catch {
+      setError("An unexpected error occurred while loading your orders.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleReviewSuccess = (productId: number, review: WooProductReview) => {
@@ -324,11 +433,32 @@ export function OrdersPageContent() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <StatusBadge status={order.status} />
-                    <span className="font-heading font-bold text-base text-foreground">
-                      {formatOrderAmount(order.total, order)}
-                    </span>
+                  <div className="flex flex-col items-end gap-1 self-end sm:self-auto">
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={order.status} />
+                      <span className="font-heading font-bold text-base text-foreground">
+                        {formatOrderAmount(order.total, order)}
+                      </span>
+                    </div>
+                    {order.refundStatus && (
+                      <span
+                        className={cn(
+                          "text-[11px] font-medium block text-right",
+                          order.refundStatus === "processed"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-amber-600 dark:text-amber-400"
+                        )}
+                      >
+                        {t(
+                          `orders.refund.${order.refundStatus}`,
+                          order.refundStatus === "processed"
+                            ? "Refund completed"
+                            : order.refundStatus === "initiated"
+                            ? "Refund initiated"
+                            : "Refund pending, our team will contact you"
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -408,8 +538,8 @@ export function OrdersPageContent() {
                   </div>
                 )}
 
-                {/* Tracking Action Bar */}
-                <div className="pt-2 flex items-center justify-between">
+                {/* Tracking & Cancellation Action Bar */}
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-2.5">
                   <Button
                     type="button"
                     variant="outline"
@@ -430,6 +560,64 @@ export function OrdersPageContent() {
                       <ChevronDown className="w-3 h-3 ml-0.5" />
                     )}
                   </Button>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {order.canCancel && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenCancelModal(order)}
+                        className="text-xs gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive rounded-xl font-medium"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>{t("orders.cancelButton", "Cancel order")}</span>
+                      </Button>
+                    )}
+
+                    {order.canReturn && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenReturnModal(order)}
+                          className="text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/10 hover:border-primary rounded-xl font-medium"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>{t("orders.returnButton", "Request return")}</span>
+                        </Button>
+                        {order.returnDeadline && (
+                          <span className="text-[11px] text-muted-foreground">
+                            Return available until {order.returnDeadline}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {!order.canCancel &&
+                      !order.canReturn &&
+                      (order.status === "processing" ||
+                        order.status === "pending" ||
+                        order.status === "on-hold") &&
+                      Boolean(order.shipmentAwb) && (
+                        <a
+                          href={getWhatsAppChatUrl(
+                            `Hi, I need assistance modifying Order #${order.number}`
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors hover:underline"
+                        >
+                          <span>
+                            {t(
+                              "orders.supportHintAwb",
+                              "Shipment in progress. Need help? Contact us on WhatsApp."
+                            )}
+                          </span>
+                        </a>
+                      )}
+                  </div>
                 </div>
 
                 {/* Collapsible Tracking Detail Section */}
@@ -448,6 +636,28 @@ export function OrdersPageContent() {
         </div>
       )}
 
+      {/* Cancel Order Modal Dialog */}
+      {selectedCancelOrder && (
+        <CancelOrderDialog
+          orderId={selectedCancelOrder.id}
+          orderNumber={selectedCancelOrder.number}
+          isPrepaid={selectedCancelOrder.isPrepaid}
+          isOpen={isCancelOpen}
+          onOpenChange={setIsCancelOpen}
+          onSuccess={loadOrders}
+        />
+      )}
+
+      {/* Return Order Modal Dialog */}
+      {selectedReturnOrder && (
+        <ReturnRequestDialog
+          order={selectedReturnOrder}
+          isOpen={isReturnOpen}
+          onClose={() => setIsReturnOpen(false)}
+          onSuccess={loadOrders}
+        />
+      )}
+
       {/* Write / Edit Product Review Modal Dialog */}
       <WriteReviewDialog
         open={isReviewOpen}
@@ -460,3 +670,4 @@ export function OrdersPageContent() {
     </main>
   );
 }
+

@@ -61,6 +61,41 @@ export async function createRazorpayOrder(
   return order as unknown as RazorpayOrderResponse;
 }
 
+export async function fetchRazorpayOrder(
+  orderId: string
+): Promise<RazorpayOrderResponse> {
+  const rzp = getRazorpayServer();
+  const order = await rzp.orders.fetch(orderId);
+  return order as unknown as RazorpayOrderResponse;
+}
+
+export interface RazorpayRefundResponse {
+  id: string;
+  entity: string;
+  amount: number;
+  currency: string;
+  payment_id: string;
+  notes?: Record<string, string>;
+  status: string;
+}
+
+export async function refundRazorpayPayment(
+  paymentId: string,
+  amountMinor?: number,
+  notes?: Record<string, string>
+): Promise<RazorpayRefundResponse> {
+  const rzp = getRazorpayServer();
+  const params: { amount?: number; notes?: Record<string, string> } = {};
+  if (typeof amountMinor === "number") {
+    params.amount = amountMinor;
+  }
+  if (notes) {
+    params.notes = notes;
+  }
+  const refund = await rzp.payments.refund(paymentId, params);
+  return refund as unknown as RazorpayRefundResponse;
+}
+
 // ─── Payment Signature Verification ──────────────────────────────────────────
 
 /**

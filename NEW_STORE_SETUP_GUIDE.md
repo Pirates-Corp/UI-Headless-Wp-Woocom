@@ -60,17 +60,29 @@ This guide provides a complete, step-by-step action plan to clone this repositor
   - Copy the files from `wp-content/mu-plugins/` in this repository to the client's WordPress `wp-content/mu-plugins/` folder:
     - `custom-cart-endpoint.php` *(Handles persistent cart sync and cross-method OAuth linking)*
     - `custom-address-book-endpoint.php` *(Multi-address book REST endpoints)*
-    - `custom-shipping-endpoint.php` *(Shiprocket / custom tracking webhook integration)*
+    - `custom-shipping-endpoint.php` *(Shiprocket tracking webhook, automated order statuses wc-shipped & wc-rto, and admin refund alert column)*
+    - `custom-returns-endpoint.php` *(Customer return requests, reverse logistics admin meta box, and automated receipt refund webhook)*
     - `custom-email-links.php` *(Rewrites customer-facing WooCommerce email links to the Next.js storefront)*
     - `templates/emails/` *(MU-plugin email template overrides for new account notifications)*
 - **Set Configuration Constants in `wp-config.php`**:
   ```php
-  // Cart authentication secret for internal REST endpoints
+  // Cart & Internal API authentication secret for Next.js REST communications
   define('MYAPP_CART_AUTH_KEY', 'your_secure_random_key_here');
 
-  // Next.js storefront URL for transactional email link rewriting
+  // Public Next.js storefront URL for customer-facing email link rewriting
   define('MYAPP_STOREFRONT_URL', 'https://www.clientdomain.com');
+
+  // (Optional) Next.js internal/direct URL for server-to-server webhook calls (e.g. returns refund on receipt).
+  // Defaults to MYAPP_STOREFRONT_URL if not specified. Useful in Docker/VPC environments (e.g. http://nextjs:3000).
+  define('MYAPP_NEXTJS_INTERNAL_URL', 'https://www.clientdomain.com');
+
+  // Shiprocket Webhook authentication token
+  define('SHIPROCKET_WEBHOOK_SECRET', 'your_shiprocket_webhook_secret_here');
+
+  // Customer Return eligibility window in days (default: 7)
+  define('MYAPP_RETURN_WINDOW_DAYS', 7);
   ```
+
 
 ---
 
