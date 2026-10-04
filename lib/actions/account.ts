@@ -21,7 +21,8 @@ import {
 } from "@/lib/woocommerce/orders";
 import { refundRazorpayPayment } from "@/lib/razorpay-server";
 import { refundStripePayment } from "@/lib/stripe-server";
-import { CancelOrderSchema } from "@/lib/validation/schemas";
+import { CancelOrderSchema, ReturnOrderSchema } from "@/lib/validation/schemas";
+
 
 export interface CustomerOrderLineItem {
   id: number;
@@ -526,4 +527,190 @@ function formatOrders(
     };
   });
 }
+
+export interface RequestReturnParams {
+  orderId: number;
+  reason: "damaged" | "defective" | "wrong_item" | "changed_mind" | "other";
+  note?: string;
+  items?: Array<{ id: number; quantity: number }>;
+  photoUrls?: string[];
+  refundAccount?: {
+    type: "upi" | "bank";
+    upiId?: string;
+    accountNumber?: string;
+    ifsc?: string;
+    holderName?: string;
+  };
+}
+
+export async function requestReturnAction(
+  params: RequestReturnParams
+): Promise<{
+  success: boolean;
+  status?: string;
+  refundAmount?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const validated = ReturnOrderSchema.safeParse(params);
+    if (!validated.success) {
+      return {
+        success: false,
+        error: validated.error.issues[0]?.message || "Invalid return request parameters.",
+      };
+    }
+
+    const user = await getSessionUser();
+    if (!user) {
+      return {
+        success: false,
+        error: "You must be signed in to request a return.",
+      };
+    }
+
+    const authKey = process.env.MYAPP_CART_AUTH_KEY || process.env.AUTH_KEY || "";
+    if (!authKey) {
+      return {
+        success: false,
+        error: "Returns service credentials not configured.",
+      };
+    }
+
+    const protocol = process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL || "https";
+    const host = process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST || "trjshop.com";
+    const baseUrl = `${protocol}://${host}`.replace(/\/+$/, "");
+
+    const queryParams = new URLSearchParams();
+    queryParams.set("AUTH_KEY", authKey);
+    if (user.id && Number(user.id) > 0) {
+      queryParams.set("user_id", String(user.id));
+    }
+    if (user.email) {
+      queryParams.set("email", user.email);
+    }
+
+    const url = `${baseUrl}/wp-json/myapp/v1/orders/${params.orderId}/return?${queryParams.toString()}`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-auth-key": authKey,
+      },
+      body: JSON.stringify({
+        reason: params.reason,
+        note: params.note,
+        items: params.items,
+        photo_urls: params.photoUrls,
+        refund_account: params.refundAccount,
+      }),
+      cache: "no-store",
+    });
+
+    const json = (await res.json().catch(() => null)) as {
+      success?: boolean;
+      status?: string;
+      refund_amount?: number;
+      message?: string;
+      error?: string;
+    } | null;
+
+    if (!res.ok || !json || json.success === false) {
+      return {
+        success: false,
+        error: json?.message || json?.error || `Failed to submit return request (${res.status}).`,
+      };
+    }
+
+    return {
+      success: true,
+      status: json.status || "return-requested",
+      refundAmount: json.refund_amount,
+      message: json.message || "Your return request has been submitted successfully.",
+    };
+  } catch (err: unknown) {
+    console.error("[requestReturnAction] Unexpected error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to submit return request.",
+    };
+  }
+}
+
+export async function uploadReturnPhotoAction(
+  formData: FormData
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return { success: false, error: "You must be signed in to upload photos." };
+    }
+
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return { success: false, error: "No file provided" };
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return { success: false, error: "Image size must be under 5 MB." };
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      return { success: false, error: "Only JPEG, PNG, WebP, or GIF images are allowed." };
+    }
+
+    const ck = process.env.WC_CONSUMER_KEY;
+    const cs = process.env.WC_CONSUMER_SECRET;
+    const protocol = process.env.NEXT_PUBLIC_WOOCOMMERCE_PROTCOL || "https";
+    const host = process.env.NEXT_PUBLIC_WOOCOMMERCE_HOST || "trjshop.com";
+    const base = `${protocol}://${host}`.replace(/\/+$/, "");
+
+    const authHeader = ck && cs ? "Basic " + Buffer.from(`${ck}:${cs}`).toString("base64") : "";
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const authKey = process.env.MYAPP_CART_AUTH_KEY || process.env.AUTH_KEY || "";
+    const internalUrl = `${base}/wp-json/myapp/v1/media/upload`;
+
+    const res = await fetch(internalUrl, {
+      method: "POST",
+      headers: {
+        "x-auth-key": authKey,
+      },
+      body: formData,
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      let errorMsg = "Failed to upload photo to media library.";
+      try {
+        const parsed = JSON.parse(errText);
+        if (parsed.message) errorMsg = parsed.message;
+      } catch {
+        // use fallback
+      }
+      console.error("[uploadReturnPhotoAction] Media upload failed:", res.status, errText);
+      return { success: false, error: errorMsg };
+    }
+
+    const mediaJson = (await res.json()) as { source_url?: string };
+    if (!mediaJson.source_url) {
+      return { success: false, error: "Upload succeeded but no media URL returned." };
+    }
+
+    return {
+      success: true,
+      url: mediaJson.source_url,
+    };
+  } catch (err: unknown) {
+    console.error("[uploadReturnPhotoAction] Error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to upload photo.",
+    };
+  }
+}
+
 

@@ -13,11 +13,13 @@ import {
   getCustomerReviewedProductsAction,
   type ReviewedProductSummary,
 } from "@/lib/actions/reviews";
-import type { WooProductReview } from "@/lib/woocommerce/types";
 import { OrderTrackingView } from "@/components/account/order-tracking-view";
 import { WriteReviewDialog } from "@/components/account/write-review-dialog";
 import { CancelOrderDialog } from "@/components/account/cancel-order-dialog";
+import { ReturnRequestDialog } from "@/components/account/return-request-dialog";
 import { getWhatsAppChatUrl } from "@/lib/utils/whatsapp";
+import type { WooProductReview } from "@/lib/woocommerce/types";
+
 import { t } from "@/lib/i18n";
 import {
   Package,
@@ -179,6 +181,10 @@ export function OrdersPageContent() {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [selectedCancelOrder, setSelectedCancelOrder] = useState<CustomerOrderSummary | null>(null);
 
+  // Return Dialog State
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
+  const [selectedReturnOrder, setSelectedReturnOrder] = useState<CustomerOrderSummary | null>(null);
+
   const toggleTracking = (orderId: number) => {
     setExpandedTracking((prev) => ({
       ...prev,
@@ -190,6 +196,12 @@ export function OrdersPageContent() {
     setSelectedCancelOrder(order);
     setIsCancelOpen(true);
   };
+
+  const handleOpenReturnModal = (order: CustomerOrderSummary) => {
+    setSelectedReturnOrder(order);
+    setIsReturnOpen(true);
+  };
+
 
   const handleOpenReviewModal = (
     item: CustomerOrderLineItem,
@@ -549,7 +561,7 @@ export function OrdersPageContent() {
                     )}
                   </Button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {order.canCancel && (
                       <Button
                         type="button"
@@ -563,7 +575,28 @@ export function OrdersPageContent() {
                       </Button>
                     )}
 
+                    {order.canReturn && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenReturnModal(order)}
+                          className="text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/10 hover:border-primary rounded-xl font-medium"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>{t("orders.returnButton", "Request return")}</span>
+                        </Button>
+                        {order.returnDeadline && (
+                          <span className="text-[11px] text-muted-foreground">
+                            Return available until {order.returnDeadline}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {!order.canCancel &&
+                      !order.canReturn &&
                       (order.status === "processing" ||
                         order.status === "pending" ||
                         order.status === "on-hold") &&
@@ -615,6 +648,16 @@ export function OrdersPageContent() {
         />
       )}
 
+      {/* Return Order Modal Dialog */}
+      {selectedReturnOrder && (
+        <ReturnRequestDialog
+          order={selectedReturnOrder}
+          isOpen={isReturnOpen}
+          onClose={() => setIsReturnOpen(false)}
+          onSuccess={loadOrders}
+        />
+      )}
+
       {/* Write / Edit Product Review Modal Dialog */}
       <WriteReviewDialog
         open={isReviewOpen}
@@ -627,3 +670,4 @@ export function OrdersPageContent() {
     </main>
   );
 }
+
