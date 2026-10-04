@@ -1,7 +1,11 @@
 import { STORE_CONFIG } from "@/store.config";
 
-export function getWhatsAppChatUrl(): string {
+export function getWhatsAppChatUrl(message?: string): string {
   const phoneNumber = STORE_CONFIG.whatsapp.phoneNumber.replace(/\D/g, "");
-
-  return `https://wa.me/${phoneNumber}`;
+  const base = `https://wa.me/${phoneNumber}`;
+  if (message) {
+    return `${base}?text=${encodeURIComponent(message)}`;
+  }
+  return base;
 }
+

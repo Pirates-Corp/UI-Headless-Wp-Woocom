@@ -80,10 +80,7 @@ export const SavedAddressInputSchema = z.object({
  * Loose address schema used for shipping estimate updates — all fields optional
  * strings, no field can exceed 255 characters to prevent oversized payloads.
  */
-export const PartialAddressSchema = z.record(
-  z.string(),
-  z.string().max(255)
-);
+export const PartialAddressSchema = z.record(z.string(), z.string().max(255));
 
 // ── Cart operation schemas ────────────────────────────────────────────────────
 
@@ -93,7 +90,9 @@ export const AddToCartSchema = z.object({
   cartToken: z.string().max(512).optional(),
   nonce: z.string().max(512).optional(),
   variation: z
-    .array(z.object({ attribute: z.string().max(200), value: z.string().max(200) }))
+    .array(
+      z.object({ attribute: z.string().max(200), value: z.string().max(200) }),
+    )
     .optional(),
 });
 
@@ -153,43 +152,59 @@ export type CheckoutFormValues = z.infer<typeof CheckoutFormSchema>;
  * Invalid/unknown values fall back to `undefined` via `.catch(undefined)` so
  * components can apply their own defaults without crashing.
  */
-export const ShopParamsSchema = z.object({
-  page: z.string().regex(/^[1-9]\d*$/).optional().catch(undefined),
-  orderby: z
-    .enum(["date", "price", "rating", "popularity"])
-    .optional()
-    .catch(undefined),
-  order: z.enum(["asc", "desc"]).optional().catch(undefined),
-  on_sale: z.enum(["true", "false"]).optional().catch(undefined),
-  // Category slugs: lowercase letters, digits, hyphens only
-  // Brand slugs use the same safe taxonomy format as categories.
-  brand: z.string().regex(/^[a-z0-9-]{1,100}$/).optional().catch(undefined),
-  category: z
-    .string()
-    .regex(/^[a-z0-9-]{1,100}$/)
-    .optional()
-    .catch(undefined),
-  tag: z.string().regex(/^[1-9]\d*$/).optional().catch(undefined),
-  min_price: z
-    .string()
-    .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
-    .optional()
-    .catch(undefined),
-  max_price: z
-    .string()
-    .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
-    .optional()
-    .catch(undefined),
-}).transform((params) => {
-  const min = params.min_price === undefined ? undefined : Number(params.min_price);
-  const max = params.max_price === undefined ? undefined : Number(params.max_price);
-  if (min !== undefined && min > 5000) params.min_price = undefined;
-  if (max !== undefined && max > 5000) params.max_price = undefined;
-  if (min !== undefined && max !== undefined && min > max) {
-    return { ...params, min_price: undefined, max_price: undefined };
-  }
-  return params;
-});
+export const ShopParamsSchema = z
+  .object({
+    page: z
+      .string()
+      .regex(/^[1-9]\d*$/)
+      .optional()
+      .catch(undefined),
+    orderby: z
+      .enum(["date", "price", "rating", "popularity"])
+      .optional()
+      .catch(undefined),
+    order: z.enum(["asc", "desc"]).optional().catch(undefined),
+    on_sale: z.enum(["true", "false"]).optional().catch(undefined),
+    // Category slugs: lowercase letters, digits, hyphens only
+    // Brand slugs use the same safe taxonomy format as categories.
+    brand: z
+      .string()
+      .regex(/^[a-z0-9-]{1,100}$/)
+      .optional()
+      .catch(undefined),
+    category: z
+      .string()
+      .regex(/^[a-z0-9-]{1,100}$/)
+      .optional()
+      .catch(undefined),
+    tag: z
+      .string()
+      .regex(/^[1-9]\d*$/)
+      .optional()
+      .catch(undefined),
+    min_price: z
+      .string()
+      .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
+      .optional()
+      .catch(undefined),
+    max_price: z
+      .string()
+      .regex(/^(?:0|[1-9]\d{0,3})(?:\.\d{1,6})?$/)
+      .optional()
+      .catch(undefined),
+  })
+  .transform((params) => {
+    const min =
+      params.min_price === undefined ? undefined : Number(params.min_price);
+    const max =
+      params.max_price === undefined ? undefined : Number(params.max_price);
+    if (min !== undefined && min > 5000) params.min_price = undefined;
+    if (max !== undefined && max > 5000) params.max_price = undefined;
+    if (min !== undefined && max !== undefined && min > max) {
+      return { ...params, min_price: undefined, max_price: undefined };
+    }
+    return params;
+  });
 
 // ── Search query ──────────────────────────────────────────────────────────────
 
@@ -200,11 +215,7 @@ export const SearchQuerySchema = z.string().trim().min(1).max(200);
 
 export const OrderConfirmationParamsSchema = z.object({
   /** WooCommerce numeric order ID */
-  order_id: z
-    .string()
-    .regex(/^\d+$/)
-    .optional()
-    .catch(undefined),
+  order_id: z.string().regex(/^\d+$/).optional().catch(undefined),
   /** Stripe checkout session ID — format: cs_test_... or cs_live_... */
   session_id: z
     .string()
@@ -267,13 +278,12 @@ export const CreateProductReviewSchema = z.object({
     .trim()
     .min(1, "Reviewer name is required")
     .max(100, "Name is too long"),
-  reviewerEmail: z
-    .string()
-    .trim()
-    .email("A valid email address is required"),
+  reviewerEmail: z.string().trim().email("A valid email address is required"),
 });
 
-export type CreateProductReviewInput = z.infer<typeof CreateProductReviewSchema>;
+export type CreateProductReviewInput = z.infer<
+  typeof CreateProductReviewSchema
+>;
 
 export const UpdateProductReviewSchema = z.object({
   reviewId: z.number().int().positive("A valid review ID is required"),
@@ -290,6 +300,46 @@ export const UpdateProductReviewSchema = z.object({
     .max(2000, "Review cannot exceed 2000 characters"),
 });
 
-export type UpdateProductReviewInput = z.infer<typeof UpdateProductReviewSchema>;
+export type UpdateProductReviewInput = z.infer<
+  typeof UpdateProductReviewSchema
+>;
 
+// ── Order Cancellation & Return Schemas ─────────────────────────────────────
 
+export const CancelOrderSchema = z.object({
+  orderId: z.number().int().positive("A valid order ID is required"),
+  reason: z.string().trim().min(1, "Cancellation reason is required").max(200),
+  note: z.string().trim().max(500).optional(),
+});
+
+export type CancelOrderInput = z.infer<typeof CancelOrderSchema>;
+
+export const ReturnOrderItemSchema = z.object({
+  id: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+});
+
+export const ReturnOrderSchema = z.object({
+  orderId: z.number().int().positive("A valid order ID is required"),
+  reason: z.string().trim().min(1, "Return reason is required").max(200),
+  note: z.string().trim().max(1000).optional(),
+  items: z
+    .array(ReturnOrderItemSchema)
+    .min(1, "At least one item must be selected")
+    .optional(),
+  photoUrls: z.array(z.string().url()).max(4).optional(),
+  refundAccount: z
+    .object({
+      type: z.enum(["upi", "bank"]).optional(),
+      accountHolder: z.string().trim().min(1).max(100).optional(),
+      holderName: z.string().trim().min(1).max(100).optional(),
+      accountNumber: z.string().trim().min(1).max(50).optional(),
+      ifscCode: z.string().trim().min(1).max(20).optional(),
+      ifsc: z.string().trim().min(1).max(20).optional(),
+      upiId: z.string().trim().min(1).max(50).optional(),
+    })
+    .passthrough()
+    .optional(),
+});
+
+export type ReturnOrderInput = z.infer<typeof ReturnOrderSchema>;
