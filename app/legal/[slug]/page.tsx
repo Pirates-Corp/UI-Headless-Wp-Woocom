@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { LegalPolicyView } from "@/components/legal/legal-policy-view";
+import { notFound, redirect } from "next/navigation";
 import {
   getLegalPolicies,
   getLegalPolicyBySlug,
   getLegalPolicyHref,
+  SLUG_TO_ANCHOR,
 } from "@/lib/legal/content";
 
 type LegalPolicyPageProps = {
@@ -46,7 +46,10 @@ export default async function LegalPolicyPage({ params }: LegalPolicyPageProps) 
   const { slug } = await params;
   const policy = getLegalPolicyBySlug(slug);
 
-  if (!policy) notFound();
+  if (!policy) {
+    notFound();
+  }
 
-  return <LegalPolicyView policy={policy} />;
+  const anchor = SLUG_TO_ANCHOR[slug] || "terms";
+  redirect(`/legal#${anchor}`);
 }

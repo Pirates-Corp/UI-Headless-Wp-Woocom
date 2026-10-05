@@ -89,17 +89,17 @@ const SHOP_LINKS = [
   { href: "/checkout", label: t("footer.links.checkout") },
 ] as const;
 
-// Figma-aligned Legal links + remaining legal policy routes
+// Figma-aligned Legal links pointing to canonical /legal anchors
 const LEGAL_LINKS = [
-  { href: "/legal/terms-and-conditions", label: "Terms of Service" },
-  { href: "/legal/privacy-policy", label: "Privacy Policy" },
-  { href: "/legal/cancellation-policy", label: "Cancellation Policy" },
+  { href: "/legal#terms", label: "Terms of Service" },
+  { href: "/legal#privacy", label: "Privacy Policy" },
+  { href: "/legal#cancellation", label: "Cancellation Policy" },
 ] as const;
 
 // Figma-aligned Support links + preserved Account routes
 const SUPPORT_LINKS = [
-  { href: "/legal/shipping-policy", label: "Shipping & Returns" },
-  { href: "/legal/returns-refunds", label: "Returns & Refunds" },
+  { href: "/legal#shipping", label: "Shipping Policy" },
+  { href: "/legal#returns", label: "Returns & Refunds" },
   { href: "/#faq", label: "FAQ" },
   { href: "/account", label: "My Account" },
   { href: "/account/orders", label: "My Orders" },

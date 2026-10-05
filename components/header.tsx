@@ -110,9 +110,9 @@ export function Header({ initialCategories = [] }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-brown/15 bg-brand-yellow">
-      <div className="container mx-auto flex h-18 sm:h-20 items-center justify-between gap-4 px-4 lg:px-8">
+      <div className="container mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-x-3 gap-y-2.5 px-4 py-2.5 md:py-0 md:h-18 lg:h-20 lg:px-8">
         {/* Left: Logo + Desktop Nav */}
-        <div className="flex items-center gap-6 lg:gap-10">
+        <div className="flex items-center gap-4 sm:gap-6 lg:gap-10 order-1">
           <Logo />
           <nav
             className="hidden lg:flex items-center gap-7 text-sm"
@@ -261,16 +261,20 @@ export function Header({ initialCategories = [] }: HeaderProps) {
           </nav>
         </div>
 
-        {/* Center/Right: Search Bar (Desktop) */}
-        <div className="hidden lg:flex flex-1 max-w-sm xl:max-w-md mx-4">
+        {/* Center/Right: Search Bar
+            - Desktop: order-2, max-w-sm xl:max-w-md
+            - Tablet: order-2, max-w-xs md:max-w-sm, inline with Logo and Actions
+            - Mobile: order-3, full width below Logo/Actions row
+        */}
+        <div className="w-full md:w-auto md:flex-1 md:max-w-xs lg:max-w-sm xl:max-w-md order-3 md:order-2 md:mx-3 lg:mx-4">
           <SearchBar
             placeholder="Search.."
-            inputClassName="rounded-full bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none h-10 pl-9"
+            inputClassName="rounded-full bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none h-9.5 md:h-10 pl-9"
           />
         </div>
 
-        {/* Actions (Wishlist, Cart, User, Mobile Hamburger) */}
-        <div className="flex items-center gap-1 sm:gap-2 text-brand-brown [&_a]:text-brand-brown [&_button]:text-brand-brown [&_svg]:text-brand-brown [&_a:hover]:text-brand-brown [&_button:hover]:text-brand-brown [&_a:hover]:bg-brand-brown/10 [&_button:hover]:bg-brand-brown/10 [&_span.rounded-full]:bg-brand-brown [&_span.rounded-full]:text-brand-yellow">
+        {/* Actions (Wishlist, Cart, User, Mobile Hamburger) - order-2 on mobile, order-3 on tablet/desktop */}
+        <div className="flex items-center gap-1 sm:gap-2 order-2 md:order-3 text-brand-brown [&_a]:text-brand-brown [&_button]:text-brand-brown [&_svg]:text-brand-brown [&_a:hover]:text-brand-brown [&_button:hover]:text-brand-brown [&_a:hover]:bg-brand-brown/10 [&_button:hover]:bg-brand-brown/10 [&_span.rounded-full]:bg-brand-brown [&_span.rounded-full]:text-brand-yellow">
           <ThemeToggle />
           <WishlistIcon />
           <CartSheet />
@@ -302,15 +306,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 </SheetTitle>
               </SheetHeader>
 
-              {/* Search */}
-              <div className="px-5 py-4 border-b border-brand-brown/15">
-                <SearchBar
-                  placeholder="Search.."
-                  inputClassName="rounded-full bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none"
-                />
-              </div>
-
-              {/* Mobile Nav links */}
+              {/* Nav links */}
               <nav
                 className="flex flex-col px-2 py-3 overflow-y-auto"
                 aria-label="Mobile navigation"

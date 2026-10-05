@@ -4,115 +4,405 @@
     "title": "Terms & Conditions",
     "slug": "terms-and-conditions",
     "status": "draft",
-    "version": "draft-1",
+    "version": "1.0",
     "effectiveDate": null,
     "lastUpdated": null,
-    "summary": "These development terms describe the proposed baseline for using the Round Logics storefront and placing an order.",
+    "summary": "Terms, conditions, and store guidelines governing purchases and website usage at Clay Brush Studio.",
     "sections": [
-      {"id":"introduction","title":"Introduction","blocks":[
-        {"type":"paragraph","text":"These Terms & Conditions are a controlled development draft for the website and related shopping services presented under the Round Logics brand. The final legal entity, operating model, and approved wording must be confirmed before publication."},
-        {"type":"paragraph","text":"This document is not legal advice and should not be treated as final client-approved terms. Product, order, payment, and support experiences may contain additional information relevant to a particular transaction."}
-      ]},
-      {"id":"acceptance-of-terms","title":"Acceptance of Terms","blocks":[
-        {"type":"paragraph","text":"By accessing the website, creating an account, or placing an order, a customer may be asked to acknowledge the applicable terms and policies. The final consent language, records, and policy versioning must be approved before production use."},
-        {"type":"list","items":["Read the documents that apply to your activity before placing an order.","Use the checkout acknowledgement only when you have reviewed the linked documents.","Contact support if you need clarification before completing a purchase."]}
-      ]},
-      {"id":"platform-and-business","title":"Platform and Business Information","blocks":[
-        {"type":"paragraph","text":"The storefront is presented under the name Round Logics and is associated with Pirates Corp for development context. The legal entity responsible for the platform has not yet been confirmed."},
-        {"type":"list","items":["Legal entity: [LEGAL ENTITY NAME — TO BE CONFIRMED]","Registered office: [REGISTERED OFFICE — TO BE CONFIRMED]","GSTIN: [GSTIN — TO BE CONFIRMED]","CIN: [CIN — TO BE CONFIRMED]"]}
-      ]},
-      {"id":"eligibility","title":"Eligibility","blocks":[{"type":"paragraph","text":"The final eligibility requirements, including any age or capacity restrictions, must be confirmed for the products and services offered through this storefront. Customers should use the website only where they are permitted to do so by applicable law."}]},
-      {"id":"accounts-and-security","title":"Accounts and Security","blocks":[{"type":"paragraph","text":"Where account registration is available, customers are responsible for providing accurate information and taking reasonable steps to protect their sign-in credentials. The final account recovery, verification, and security procedures remain subject to confirmation."}]},
-      {"id":"user-responsibilities","title":"User Responsibilities","blocks":[{"type":"list","items":["Provide information that is accurate, current, and relevant to the order.","Do not misuse the website, payment flow, account system, or another person’s information.","Do not attempt to interfere with the availability, security, or normal operation of the platform.","Use product information and instructions responsibly and seek clarification where information is incomplete."]}]},
-      {"id":"products-and-information","title":"Products and Product Information","blocks":[
-        {"type":"paragraph","text":"Product names, descriptions, images, attributes, stock information, and prices are displayed for shopping decisions and may require correction or confirmation. The final product catalogue, seller model, country-of-origin disclosures, and other product-specific information must be reviewed for the business model."},
-        {"type":"paragraph","text":"Where a product page links to shipping, cancellation, return, refund, replacement, or warranty information, the dedicated policy document should be read together with the product information."}
-      ]},
-      {"id":"pricing-taxes-and-offers","title":"Pricing, Taxes, and Offers","blocks":[{"type":"paragraph","text":"The applicable price, taxes, delivery charges, discounts, and offer conditions should be shown before an order is submitted. Any prior-price comparison, promotion condition, seller disclosure, or tax treatment must be confirmed for the relevant transaction before this draft is approved."}]},
-      {"id":"orders-and-acceptance","title":"Orders and Order Acceptance","blocks":[{"type":"paragraph","text":"Submitting an order is a request to purchase the selected products. The final rules for order acceptance, stock errors, duplicate orders, fraud screening, and cancellation by the platform must be confirmed and documented in the approved version."}]},
-      {"id":"payment","title":"Payment","blocks":[{"type":"paragraph","text":"Available payment methods are shown during checkout. Payment processing may involve third-party providers presented in the checkout flow. The approved version must identify applicable payment, chargeback, failed-payment, and payment-security information without claiming providers or capabilities that are not in use."}]},
-      {"id":"shipping-and-delivery","title":"Shipping and Delivery","blocks":[{"type":"paragraph","text":"Shipping availability, delivery estimates, serviceable locations, charges, tracking, and delivery exceptions are described in the Shipping Policy. No delivery promise is made by this development draft."}]},
-      {"id":"cancellation","title":"Cancellation","blocks":[{"type":"paragraph","text":"Cancellation eligibility depends on order status and the approved business rules. See the Cancellation Policy for the implementation placeholder and the final terms once the cancellation window and post-dispatch handling are confirmed."}]},
-      {"id":"returns-refunds-and-replacement","title":"Returns, Refunds, and Replacement","blocks":[{"type":"paragraph","text":"Return eligibility, non-returnable products, damaged or incorrect deliveries, replacement handling, refund method, and refund timing are not confirmed. See the Returns, Refunds & Replacement Policy for controlled placeholders."}]},
-      {"id":"intellectual-property","title":"Intellectual Property","blocks":[{"type":"paragraph","text":"The final approved terms should identify the rights holder for the storefront, brand assets, software, product content, and other materials, together with the permissions granted to customers for ordinary shopping use."}]},
-      {"id":"third-party-services","title":"Third-Party Links and Services","blocks":[{"type":"paragraph","text":"The platform may link to or use services operated by third parties. Their own terms and privacy notices may apply. The final document must identify relevant providers only after they have been verified in the deployed architecture."}]},
-      {"id":"availability-and-disclaimers","title":"Platform Availability and Disclaimers","blocks":[{"type":"paragraph","text":"The website may be updated, unavailable, or affected by events outside the platform’s control. Any disclaimer must be reviewed by the client and legal advisers so that it accurately reflects consumer rights and the services actually provided."}]},
-      {"id":"changes-to-terms","title":"Changes to These Terms","blocks":[{"type":"paragraph","text":"The policy source supports version, effective-date, and last-updated metadata so approved changes can be reviewed and linked to the experience. The final notice and transition process must be confirmed before publication."}]},
-      {"id":"grievance-redressal","title":"Grievance Redressal","blocks":[{"type":"paragraph","text":"The grievance officer, nodal officer, escalation method, and applicable response commitments are [GRIEVANCE OFFICER — TO BE CONFIRMED]. Do not treat the general development contact below as a statutory grievance officer or legal-notice address."}]},
-      {"id":"governing-law-and-jurisdiction","title":"Governing Law and Jurisdiction","blocks":[{"type":"paragraph","text":"Governing law and jurisdiction: [JURISDICTION — TO BE CONFIRMED]. This placeholder must be replaced only after client and legal review."}]},
-      {"id":"contact-information","title":"Contact Information","blocks":[{"type":"paragraph","text":"For general development-stage questions about these policies, use the verified contact details shown in the contact card on this page. Those details are not a statement that the supplied address is a registered office."}]},
-      {"id":"version-and-effective-date","title":"Version and Effective Date","blocks":[{"type":"list","items":["Status: Draft / development content","Version: draft-1","Effective date: [TO BE CONFIRMED]","Last updated: [TO BE CONFIRMED]"]}]}
+      {
+        "id": "introduction",
+        "title": "Introduction",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Welcome to Clay Brush Studio. These Terms & Conditions govern your access to and use of our website, product catalogue, and online ordering services. By browsing our store, registering an account, or placing an order, you agree to abide by these terms and our associated policies."
+          }
+        ]
+      },
+      {
+        "id": "acceptance-of-terms",
+        "title": "Acceptance of Terms",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "By accessing our website, creating an account, or purchasing products, you confirm that you have reviewed and accepted these Terms & Conditions, together with our Privacy Policy, Shipping Policy, Cancellation Policy, and Return and Refund Policy."
+          },
+          {
+            "type": "list",
+            "items": [
+              "Please review the policies that apply to your transaction before placing an order.",
+              "If you require clarification on any policy, please contact our support team prior to purchasing.",
+              "If you do not agree with any part of these terms, please refrain from using our online store."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "product-descriptions-and-pricing",
+        "title": "Product Descriptions and Pricing",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "We make every effort to display the colors, dimensions, and specifications of our products accurately. Because many studio pieces involve handcrafted, artistic, 3D printing, or hand-painted processes, natural minor variations in texture, shade, and finish are an authentic part of each product."
+          },
+          {
+            "type": "paragraph",
+            "text": "All prices are listed in Indian Rupees (INR) and are inclusive of applicable taxes unless indicated otherwise. We reserve the right to rectify typographical or pricing errors prior to order dispatch."
+          }
+        ]
+      },
+      {
+        "id": "orders-and-payment",
+        "title": "Orders and Payment",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Submitting an order represents an offer to purchase the selected items. Order confirmation occurs upon successful payment verification or confirmation of cash on delivery. We reserve the right to cancel or decline an order in cases of stock discrepancies or suspected fraudulent activity."
+          }
+        ]
+      },
+      {
+        "id": "intellectual-property",
+        "title": "Intellectual Property",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "All brand assets, studio designs, artwork, product photographs, logos, text, and website content are the exclusive intellectual property of Clay Brush Studio and protected under applicable copyright laws. Commercial reproduction, distribution, or unauthorized use is strictly prohibited."
+          }
+        ]
+      },
+      {
+        "id": "limitation-of-liability",
+        "title": "Limitation of Liability",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "To the maximum extent permitted by applicable law, Clay Brush Studio shall not be liable for any indirect, incidental, or consequential damages resulting from the use or inability to use our products or website services."
+          }
+        ]
+      },
+      {
+        "id": "governing-law",
+        "title": "Governing Law and Jurisdiction",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "These terms and all store transactions are governed by the laws of India, subject to the jurisdiction of competent courts in Tamil Nadu."
+          }
+        ]
+      }
     ],
-    "relatedPolicies":["privacy-policy","shipping-policy","cancellation-policy","returns-refunds"]
+    "relatedPolicies": [
+      "privacy-policy",
+      "shipping-policy",
+      "cancellation-policy",
+      "returns-refunds"
+    ]
   },
   {
-    "policyId":"privacy-policy","title":"Privacy Policy","slug":"privacy-policy","status":"draft","version":"draft-1","effectiveDate":null,"lastUpdated":null,
-    "summary":"This development draft provides the structure for explaining how personal data may be handled by the storefront once the actual data flows are confirmed.",
-    "sections":[
-      {"id":"privacy-introduction","title":"Introduction","blocks":[{"type":"paragraph","text":"This Privacy Policy is a development draft for the Round Logics storefront. It is designed to be replaced with client-approved content after the application data flows, vendors, retention practices, and legal roles have been verified."}]},
-      {"id":"information-we-may-collect","title":"Information We May Collect","blocks":[{"type":"paragraph","text":"Depending on the feature used, the storefront may process information supplied by a customer, such as account, contact, address, order, and support details. The definitive list must be derived from the deployed application and approved privacy notice."}]},
-      {"id":"how-information-is-used","title":"How Information Is Used","blocks":[{"type":"list","items":["Provide and administer requested shopping, account, and order functionality.","Respond to support or contact requests.","Maintain security, prevent misuse, and troubleshoot the service.","Meet other purposes that are clearly disclosed and approved for the actual product."]},{"type":"paragraph","text":"This list is structural and does not confirm that each purpose is currently active."}]},
-      {"id":"account-and-order-information","title":"Account and Order Information","blocks":[{"type":"paragraph","text":"Account, billing, shipping, order, and customer-service fields should be documented with their purpose and required status in the approved notice. Do not add fields or uses to the final policy without verifying the application and operational workflows."}]},
-      {"id":"payment-information","title":"Payment Information","blocks":[{"type":"paragraph","text":"Payment details may be collected or handled through payment providers shown in checkout. The approved notice must explain the actual payment data boundary and must not claim that the storefront stores or does not store a particular payment field without verification."}]},
-      {"id":"technical-information","title":"Device and Technical Information","blocks":[{"type":"paragraph","text":"The actual deployment should be audited for server logs, device information, identifiers, security telemetry, analytics, and performance measurement before this section is approved. No analytics provider or retention period is claimed here."}]},
-      {"id":"cookies-and-similar-technologies","title":"Cookies and Similar Technologies","blocks":[{"type":"paragraph","text":"Cookie categories, consent choices, storage duration, and third-party technologies must be documented from the actual runtime configuration. This draft does not claim that a particular cookie, analytics tool, or advertising pixel is in use."}]},
-      {"id":"sharing-and-disclosure","title":"Sharing and Disclosure","blocks":[{"type":"paragraph","text":"The final notice must identify the categories of recipients that actually receive personal data, why they receive it, and how the customer can contact the responsible organisation. This development version does not name vendors, ad networks, processors, or other recipients."}]},
-      {"id":"security-and-retention","title":"Security and Retention","blocks":[{"type":"paragraph","text":"The approved notice may describe appropriate safeguards without exposing security-sensitive details. Retention periods are [RETENTION PERIODS — TO BE CONFIRMED] and should be based on actual operational, tax, accounting, support, security, and legal requirements."}]},
-      {"id":"rights-and-choices","title":"Data Rights and Choices","blocks":[{"type":"paragraph","text":"The approved notice should explain the rights and choices available to individuals, how to exercise them, how consent can be withdrawn where applicable, and how complaints can be raised. The responsible legal role and process are [PRIVACY CONTACT / DATA PROTECTION ROLE — TO BE CONFIRMED]."}]},
-      {"id":"children-and-international-transfers","title":"Children and International Transfers","blocks":[{"type":"paragraph","text":"The client must confirm whether the products or services are directed to children and whether international transfers or remote access are involved. This draft makes no age-related or location-related claim."}]},
-      {"id":"privacy-policy-changes","title":"Changes to This Policy","blocks":[{"type":"paragraph","text":"This content model tracks versions and dates so approved updates can be communicated clearly. The final change-notice process is [TO BE CONFIRMED]."}]},
-      {"id":"privacy-contact","title":"Contact and Grievance","blocks":[{"type":"paragraph","text":"General development-stage questions can be sent to the supplied contact details shown on this page. The statutory privacy contact, grievance officer, and legal entity are [TO BE CONFIRMED]."}]},
-      {"id":"privacy-version","title":"Version and Effective Date","blocks":[{"type":"list","items":["Status: Draft / development content","Version: draft-1","Effective date: [TO BE CONFIRMED]","Last updated: [TO BE CONFIRMED]"]}]}
+    "policyId": "privacy-policy",
+    "title": "Privacy Policy",
+    "slug": "privacy-policy",
+    "status": "draft",
+    "version": "draft-provisional-1",
+    "effectiveDate": null,
+    "lastUpdated": null,
+    "summary": "Provisional privacy notice explaining how customer information is collected, used, and protected during shopping and order fulfillment.",
+    "sections": [
+      {
+        "id": "privacy-overview",
+        "title": "Privacy Overview",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Clay Brush Studio respects your privacy and is committed to protecting your personal data. This provisional Privacy Policy describes what information we collect when you visit our website, register an account, or make a purchase, and how that information is handled securely."
+          }
+        ]
+      },
+      {
+        "id": "information-we-collect",
+        "title": "Information We Collect",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "We collect only the personal information essential to provide our shopping experience, fulfill deliveries, and communicate with you:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "Contact information: Name, email address, and phone number provided upon account sign-up or checkout.",
+              "Delivery information: Shipping address, billing address, and recipient contact details necessary for dispatch.",
+              "Order records: Purchased items, order totals, transaction dates, and fulfillment statuses.",
+              "Direct correspondence: Inquiries, feedback, or support messages sent via email, phone, or WhatsApp."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "how-information-is-used",
+        "title": "How Information Is Used",
+        "blocks": [
+          {
+            "type": "list",
+            "items": [
+              "Processing, assembling, packing, and dispatching your orders.",
+              "Sending essential transactional communications, including order confirmations, tracking details, and support responses.",
+              "Maintaining your account, order history, and saved wishlist preferences.",
+              "Protecting our website, preventing fraudulent transactions, and ensuring platform security."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "payment-data-security",
+        "title": "Payment Data Security",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "All online payments are securely processed through encrypted, compliant third-party payment gateways. Clay Brush Studio does not store, process, or retain your complete debit card, credit card, or UPI credentials on our servers."
+          }
+        ]
+      },
+      {
+        "id": "cookies-and-storage",
+        "title": "Cookies and Local Storage",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Our storefront uses essential browser cookies and local storage exclusively to enable core shopping features, such as preserving cart items, maintaining your wishlist, and keeping your session signed in. We do not use third-party tracking or cross-site advertising pixels."
+          }
+        ]
+      },
+      {
+        "id": "information-sharing",
+        "title": "Information Sharing and Disclosure",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "We do not sell, rent, or trade customer information to third parties. Customer address and contact information are shared solely with our verified courier delivery partners to complete parcel delivery."
+          }
+        ]
+      },
+      {
+        "id": "your-rights-and-choices",
+        "title": "Your Rights and Choices",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "You may review and update your account details at any time by logging into the My Account dashboard. For data correction or account deletion requests, please contact our support team."
+          }
+        ]
+      }
     ],
-    "relatedPolicies":["terms-and-conditions"]
+    "relatedPolicies": [
+      "terms-and-conditions",
+      "shipping-policy",
+      "returns-refunds"
+    ]
   },
   {
-    "policyId":"shipping-policy","title":"Shipping Policy","slug":"shipping-policy","status":"draft","version":"draft-1","effectiveDate":null,"lastUpdated":null,
-    "summary":"A replaceable framework for communicating shipping availability, delivery expectations, charges, tracking, and exceptions without inventing promises.",
-    "sections":[
-      {"id":"shipping-overview","title":"Shipping Overview","blocks":[{"type":"paragraph","text":"This Shipping Policy is a development draft. The actual serviceable locations, delivery partners, delivery commitments, and order-processing rules must be confirmed before publication."}]},
-      {"id":"serviceable-locations","title":"Serviceable Locations","blocks":[{"type":"paragraph","text":"Serviceable locations: [SERVICEABLE LOCATIONS — TO BE CONFIRMED]. Availability may depend on the delivery address, product, stock location, and applicable restrictions."}]},
-      {"id":"delivery-estimates","title":"Delivery Estimates","blocks":[{"type":"paragraph","text":"Delivery estimate: [DELIVERY TIME — TO BE CONFIRMED]. Any estimate shown at checkout should be treated as the source of truth for that order and should account for the address and selected shipping method."}]},
-      {"id":"shipping-charges","title":"Shipping Charges","blocks":[{"type":"paragraph","text":"Shipping charges: [SHIPPING CHARGES — TO BE CONFIRMED]. Applicable charges should be displayed before order submission and should not be hidden in a later step."}]},
-      {"id":"order-processing-and-tracking","title":"Order Processing and Tracking","blocks":[{"type":"paragraph","text":"Order-processing time, tracking availability, tracking messages, and carrier hand-off details are [TO BE CONFIRMED] from the current WooCommerce and shipping integrations."}]},
-      {"id":"delayed-or-failed-delivery","title":"Delayed or Failed Delivery","blocks":[{"type":"paragraph","text":"The final policy should explain how customers can report a delayed, failed, refused, or incorrectly addressed delivery and what information support needs to investigate it."}]},
-      {"id":"address-changes-and-restrictions","title":"Address Changes and Restrictions","blocks":[{"type":"paragraph","text":"Address-change eligibility, restricted products or locations, and international delivery are [TO BE CONFIRMED]. Do not infer international service or product restrictions from the presence of a country selector."}]},
-      {"id":"shipping-contact","title":"Contact","blocks":[{"type":"paragraph","text":"For general development-stage shipping questions, use the contact details shown in the contact card on this page."}]}
+    "policyId": "shipping-policy",
+    "title": "Shipping Policy",
+    "slug": "shipping-policy",
+    "status": "approved",
+    "version": "1.0",
+    "effectiveDate": null,
+    "lastUpdated": null,
+    "summary": "Official processing and delivery timelines for all Clay Brush Studio orders.",
+    "sections": [
+      {
+        "id": "processing-time",
+        "title": "Processing Time",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "After order confirmation and successful payments or cash on delivery, your order will be processed and shipped within 4 business days."
+          }
+        ]
+      },
+      {
+        "id": "delivery-time",
+        "title": "Delivery Time",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "All products are expected to be delivered within 4–7 business days after shipment."
+          },
+          {
+            "type": "paragraph",
+            "text": "Overall, orders are typically delivered within 5–7 business days from the date of order confirmation and payments."
+          }
+        ]
+      },
+      {
+        "id": "delivery-timelines-and-estimates",
+        "title": "Delivery Timelines and Estimates",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Please note that delivery timelines are estimates and may vary due to courier delays, location constraints, public holidays, or unforeseen circumstances beyond our control."
+          }
+        ]
+      }
     ],
-    "relatedPolicies":["terms-and-conditions","cancellation-policy","returns-refunds"]
+    "relatedPolicies": [
+      "terms-and-conditions",
+      "cancellation-policy",
+      "returns-refunds"
+    ]
   },
   {
-    "policyId":"cancellation-policy","title":"Cancellation Policy","slug":"cancellation-policy","status":"approved","version":"v1.1","effectiveDate":"2026-10-01","lastUpdated":"2026-10-01",
-    "summary":"Clear guidelines explaining when an order can be cancelled and how refunds are automatically processed.",
-    "sections":[
-      {"id":"cancellation-overview","title":"Cancellation Overview","blocks":[{"type":"paragraph","text":"We want you to be completely satisfied with your purchase. You can easily cancel eligible orders directly from your account page before shipping has been initiated."}]},
-      {"id":"before-dispatch","title":"Cancellation Before Shipment","blocks":[{"type":"paragraph","text":"You can cancel your order self-service as long as it is in Pending, On-Hold, or Processing status and has not yet been assigned a courier tracking number (AWB). Once an AWB is generated and shipment is initiated, self-service cancellation is disabled."}]},
-      {"id":"after-dispatch","title":"Cancellation After Shipment","blocks":[{"type":"paragraph","text":"Once a tracking number has been assigned or the order has been handed to the courier partner, the order cannot be cancelled directly. If you need assistance, you can contact our WhatsApp support team or wait for delivery and initiate a return within the return window."}]},
-      {"id":"refund-after-cancellation","title":"Refund After Cancellation","blocks":[{"type":"paragraph","text":"For prepaid orders (paid via Credit/Debit Cards, UPI, Net Banking, Razorpay, or Stripe), cancelling your order automatically initiates a full refund of 100% of your payment (including all product and shipping charges) back to your original payment method. The refund is typically reflected in your bank account or card within 5 to 7 business days. For Cash on Delivery (COD) orders, no payment was made, so the order is immediately cancelled without any financial transaction."}]},
-      {"id":"cancellation-contact","title":"Contact Support","blocks":[{"type":"paragraph","text":"If you have any questions regarding order cancellation, please reach out to our customer support team through our WhatsApp helpline or email us."}]}
+    "policyId": "cancellation-policy",
+    "title": "Cancellation Policy",
+    "slug": "cancellation-policy",
+    "status": "draft",
+    "version": "draft-provisional-1",
+    "effectiveDate": null,
+    "lastUpdated": null,
+    "summary": "Provisional guidelines on requesting order cancellations prior to dispatch.",
+    "sections": [
+      {
+        "id": "cancellation-overview",
+        "title": "Cancellation Overview",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "We understand that plans can change. This provisional Cancellation Policy outlines the process and eligibility conditions under which an order placed with Clay Brush Studio may be cancelled."
+          }
+        ]
+      },
+      {
+        "id": "cancellation-before-dispatch",
+        "title": "Cancellation Before Dispatch",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Orders may be cancelled before they have been processed and dispatched for delivery. To request a cancellation, please contact our customer support team as soon as possible via email or WhatsApp with your order number."
+          },
+          {
+            "type": "paragraph",
+            "text": "Once an order has been packed, assigned a tracking number, or handed over to our delivery partner, it cannot be cancelled. In such cases, customers may follow the Return and Refund Policy upon parcel delivery."
+          }
+        ]
+      },
+      {
+        "id": "custom-and-made-to-order-items",
+        "title": "Custom and Made-to-Order Items",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "For handcrafted, custom-painted, or customized 3D printed products, cancellation requests must be received before the production or crafting process begins. Once crafting is underway, cancellation may not be permitted."
+          }
+        ]
+      },
+      {
+        "id": "refund-after-cancellation",
+        "title": "Refund After Cancellation",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "For cancellations successfully approved prior to dispatch, the refund will be initiated to the original payment method within 7–10 working days."
+          }
+        ]
+      }
     ],
-    "relatedPolicies":["terms-and-conditions","shipping-policy","returns-refunds"]
+    "relatedPolicies": [
+      "terms-and-conditions",
+      "shipping-policy",
+      "returns-refunds"
+    ]
   },
   {
-    "policyId":"returns-refunds","title":"Returns, Refunds & Replacement","slug":"returns-refunds","status":"approved","version":"v1.1","effectiveDate":"2026-10-01","lastUpdated":"2026-10-01",
-    "summary":"Our 7-day return policy, eligibility conditions, proof requirements, and refund calculation rules.",
-    "sections":[
-      {"id":"returns-overview","title":"Returns Overview","blocks":[{"type":"paragraph","text":"We stand behind the quality of our products. If you are not satisfied with your purchase or if you receive a damaged, defective, or incorrect item, you can request a return within 7 days of delivery."}]},
-      {"id":"return-eligibility","title":"7-Day Return Window","blocks":[{"type":"paragraph","text":"Returns can be requested directly from your account within 7 days of the confirmed delivery date. The deadline applies to submitting your return request online, after which our team will arrange the reverse pickup."}]},
-      {"id":"non-returnable-items","title":"Condition Requirements","blocks":[{"type":"paragraph","text":"Returned items must be in their original condition, unused, and with original packaging, tags, and accessories intact. Consumable items that have been extensively used or altered may not be eligible for a refund."}]},
-      {"id":"damaged-defective-or-incorrect","title":"Damaged, Defective, or Incorrect Products","blocks":[{"type":"paragraph","text":"If you received a damaged item, manufacturing defect, or wrong item, please select the appropriate reason and upload clear photos showing the issue during the return request. Upon verification, you will receive a full refund of 100% of the item cost plus shipping charges."}]},
-      {"id":"refund-method-and-timeline","title":"Refund Calculation and Process","blocks":[
-        {"type":"paragraph","text":"The refund amount depends on the return reason:"},
-        {"type":"list","items":[
-          "Damaged, Defective, or Wrong Item: Full refund of 100% of the product cost plus original shipping charges.",
-          "Changed Mind or Other Reason: Refund of the product cost (excluding shipping charges)."
-        ]},
-        {"type":"paragraph","text":"For prepaid orders, the refund is processed automatically to your original payment method once the returned item is received and inspected at our warehouse. For COD orders, our support team will disburse the refund to your designated UPI ID or bank account within 3-5 business days of receipt."}
-      ]},
-      {"id":"inspection-and-verification","title":"Reverse Pickup and Inspection","blocks":[{"type":"paragraph","text":"Once your return request is approved by our team, a courier partner will be assigned to collect the item from your delivery address. After receipt and quick verification at our facility, the refund status will update in your account."}]},
-      {"id":"returns-contact","title":"Contact Support","blocks":[{"type":"paragraph","text":"For questions about returns or reverse logistics, contact our customer service team via WhatsApp or email."}]}
+    "policyId": "returns-refunds",
+    "title": "Return and Refund Policy",
+    "slug": "returns-refunds",
+    "status": "approved",
+    "version": "1.0",
+    "effectiveDate": null,
+    "lastUpdated": null,
+    "summary": "Official return, inspection, and refund conditions for Clay Brush Studio products.",
+    "sections": [
+      {
+        "id": "return-window-and-overview",
+        "title": "Return and Refund Policy",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "We offer a 7-day return window from the date of delivery. All return requests are subject to review and approval by CLAY BRUSH STUDIO."
+          }
+        ]
+      },
+      {
+        "id": "eligible-returns",
+        "title": "Eligible Returns",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Returns may be approved in the following cases:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "Verified manufacturing defects",
+              "Products damaged during transit",
+              "Incorrect product received"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "text": "To request a return, customers must provide clear photographs or videos showing the issue for review."
+          }
+        ]
+      },
+      {
+        "id": "non-eligible-returns",
+        "title": "Non-Eligible Returns",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Returns will not be accepted for:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "Personal preference or dissatisfaction with the design, appearance, size, color, or construction of the product",
+              "Expectations differing from the product photos, videos, dimensions, or descriptions provided before purchase",
+              "Delicate features that are clearly shown or described on the product page",
+              "Minor variations resulting from the handmade, artistic, or 3D printing and Painting process"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "condition-of-returned-products",
+        "title": "Condition of Returned Products",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Approved returns must be sent back unused, in their original condition, and in the original packaging. Returns that show signs of use, modification, damage caused after delivery, or missing components may be rejected."
+          }
+        ]
+      },
+      {
+        "id": "refund-processing",
+        "title": "Refund Processing",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Once an approved return is received and inspected, the refund will be processed to the original payment method within 7-10 working days."
+          },
+          {
+            "type": "paragraph",
+            "text": "CLAY BRUSH STUDIO reserves the right to approve or reject return requests based on the condition of the product and compliance with this policy."
+          }
+        ]
+      }
     ],
-    "relatedPolicies":["terms-and-conditions","shipping-policy","cancellation-policy"]
+    "relatedPolicies": [
+      "terms-and-conditions",
+      "shipping-policy",
+      "cancellation-policy"
+    ]
   }
 
 ]
