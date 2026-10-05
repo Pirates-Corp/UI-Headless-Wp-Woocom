@@ -8,23 +8,23 @@ import { cn } from "@/lib/utils";
 
 const HERO_SLIDES = [
   {
-    src: "/assets/hero-section/claybrushstudio1.png",
+    src: "/assets/hero-section/claybrushstudio1.webp",
     alt: "Clay Brush Studio - 3D Printed Art & Sculptures 1",
   },
   {
-    src: "/assets/hero-section/claybrushstudio2.png",
+    src: "/assets/hero-section/claybrushstudio2.webp",
     alt: "Clay Brush Studio - 3D Printed Art & Sculptures 2",
   },
   {
-    src: "/assets/hero-section/claybrushstudio3.png",
+    src: "/assets/hero-section/claybrushstudio3.webp",
     alt: "Clay Brush Studio - 3D Printed Art & Sculptures 3",
   },
   {
-    src: "/assets/hero-section/claybrushstudio4.png",
+    src: "/assets/hero-section/claybrushstudio4.webp",
     alt: "Clay Brush Studio - 3D Printed Art & Sculptures 4",
   },
   {
-    src: "/assets/hero-section/claybrushstudio5.png",
+    src: "/assets/hero-section/claybrushstudio5.webp",
     alt: "Clay Brush Studio - 3D Printed Art & Sculptures 5",
   },
 ] as const;
@@ -227,7 +227,7 @@ export function HeroCarousel() {
               "transition-all duration-300 rounded-full cursor-pointer",
               index === currentIndex
                 ? "w-5 sm:w-7 h-1.5 sm:h-2 bg-brand-yellow shadow-sm"
-                : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/60 hover:bg-white"
+                : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/60 hover:bg-white",
             )}
           />
         ))}

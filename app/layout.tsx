@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import GoogleTagManagerLoader from "@/components/analytics/google-tag-manager";
 import { WebVitals } from "@/components/analytics/web-vitals";
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
+import { getCategories } from "@/lib/woocommerce/api";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
@@ -62,11 +63,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const categories = await getCategories({ hide_empty: false })
+    .then((cats) => cats.filter((c) => c.slug !== "uncategorized"))
+    .catch(() => []);
+
   return (
     <html
       lang={t('lang')}
@@ -105,7 +110,7 @@ export default function RootLayout({
         >
           <CartStoreInitializer />
           <AuthStoreInitializer />
-          <Header />
+          <Header initialCategories={categories} />
           <main className="flex-1">{children}</main>
           <Footer />
           <WhatsAppFloatingButton />
