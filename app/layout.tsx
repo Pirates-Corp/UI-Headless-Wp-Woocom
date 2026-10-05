@@ -86,8 +86,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
+          forcedTheme="light"
           disableTransitionOnChange
         >
           <CartStoreInitializer />
@@ -96,7 +97,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
           <WhatsAppFloatingButton />
-          <Toaster />
+          <Toaster theme="light" />
         </ThemeProvider>
       </body>
     </html>

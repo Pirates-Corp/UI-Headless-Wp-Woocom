@@ -10,8 +10,19 @@ import { formatProductPrice } from "@/lib/utils/format";
 import { searchAction } from "@/lib/actions/search";
 import type { WooProduct } from "@/lib/woocommerce/types";
 import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-export function SearchBar() {
+export interface SearchBarProps {
+  placeholder?: string;
+  className?: string;
+  inputClassName?: string;
+}
+
+export function SearchBar({
+  placeholder,
+  className,
+  inputClassName,
+}: SearchBarProps = {}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<WooProduct[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -80,18 +91,18 @@ export function SearchBar() {
   const showDropdown = isOpen && (isPending || results.length > 0);
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className={cn("relative w-full", className)}>
       <form onSubmit={handleSubmit}>
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none" />
+        <Search className={cn("absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none", inputClassName && "text-brand-brown/60")} />
         <Input
           ref={inputRef}
           type="search"
-          placeholder={t('search.placeholder')}
+          placeholder={placeholder ?? t('search.placeholder')}
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => { if (results.length > 0) setIsOpen(true); }}
-          className="pl-9 pr-8"
+          className={cn("pl-9 pr-8", inputClassName)}
           autoComplete="off"
           aria-label={t('search.ariaLabel')}
           aria-expanded={showDropdown}

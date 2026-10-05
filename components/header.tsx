@@ -2,6 +2,7 @@
 
 import { useUIStore } from "@/lib/store/ui-store";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { SearchBar } from "@/components/search-bar";
@@ -17,25 +18,30 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/shop", label: t("nav.shopAll") },
-  { href: "/shop?on_sale=true", label: t("nav.onSale") },
-];
+  { href: "/", label: "Home" },
+  { href: "/shop", label: "Store" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+] as const;
 
 function Logo() {
   return (
     <Link
       href="/"
-      className="shrink-0 flex flex-col leading-none select-none"
+      className="shrink-0 flex items-center select-none py-1"
+      aria-label="Clay Brush Studio Home"
     >
-      <span className="font-heading text-[1.15rem] font-bold tracking-[0.15em] uppercase">
-        {t("brand.name")}
-      </span>
-      <span className="text-[9px] tracking-[0.45em] text-muted-foreground uppercase font-medium -mt-0.5">
-        {t("brand.tagline")}
-      </span>
+      <Image
+        src="/offical-claybrush-logo/claybrush-logo-d.svg"
+        alt="Clay Brush Studio"
+        width={63}
+        height={44}
+        className="h-9 sm:h-10 w-auto object-contain"
+        priority
+      />
     </Link>
   );
 }
@@ -46,41 +52,51 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="container mx-auto flex h-16 items-center justify-between gap-6 px-4 lg:px-8">
-        {/* Left: Logo + Nav (desktop) */}
-        <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-50 w-full border-b border-brand-brown/15 bg-brand-yellow">
+      <div className="container mx-auto flex h-18 sm:h-20 items-center justify-between gap-4 px-4 lg:px-8">
+        {/* Left: Logo + Desktop Nav */}
+        <div className="flex items-center gap-6 lg:gap-10">
           <Logo />
           <nav
-            className="hidden lg:flex items-center gap-4 text-sm"
-            aria-label={t("nav.mainLabel")}
+            className="hidden lg:flex items-center gap-7 text-sm"
+            aria-label="Main navigation"
           >
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={
-                  "relative tracking-wide transition-colors duration-200 " +
-                  "after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-0 " +
-                  "after:bg-foreground after:transition-all after:duration-300 hover:after:w-full " +
-                  (pathname === href || pathname.startsWith(href + "?")
-                    ? "text-foreground after:w-full"
-                    : "text-muted-foreground hover:text-foreground")
-                }
-              >
-                {label}
-              </Link>
-            ))}
+            {NAV_LINKS.map(({ href, label }) => {
+              const isActive =
+                href === "/"
+                  ? pathname === "/"
+                  : pathname === href ||
+                    pathname.startsWith(href + "/") ||
+                    pathname.startsWith(href + "?");
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "relative py-1 font-medium transition-colors duration-200 tracking-wide",
+                    isActive
+                      ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
+                      : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200"
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
-        {/* Search (desktop) - expands to fill available space but not less than min width */}
-        <div className="hidden lg:flex lg:flex-1 lg:min-w-[20rem] w-full">
-          <SearchBar />
+        {/* Center/Right: Search Bar (Desktop) */}
+        <div className="hidden lg:flex flex-1 max-w-sm xl:max-w-md mx-4">
+          <SearchBar
+            placeholder="Search.."
+            inputClassName="rounded-full bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none h-10 pl-9"
+          />
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        {/* Actions (Wishlist, Cart, User, Mobile Hamburger) */}
+        <div className="flex items-center gap-1 sm:gap-2 text-brand-brown [&_a]:text-brand-brown [&_button]:text-brand-brown [&_svg]:text-brand-brown [&_a:hover]:text-brand-brown [&_button:hover]:text-brand-brown [&_a:hover]:bg-brand-brown/10 [&_button:hover]:bg-brand-brown/10 [&_span.rounded-full]:bg-brand-brown [&_span.rounded-full]:text-brand-yellow">
           <ThemeToggle />
           <WishlistIcon />
           <CartSheet />
@@ -93,55 +109,70 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="lg:hidden"
+                  className="lg:hidden text-brand-brown hover:bg-brand-brown/10"
                   aria-label="Open menu"
                 />
               }
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5 text-brand-brown" />
             </SheetTrigger>
 
-            <SheetContent side="right" className="flex flex-col gap-0 p-0">
+            <SheetContent
+              side="right"
+              className="flex flex-col gap-0 p-0 bg-brand-yellow text-brand-brown border-l border-brand-brown/15"
+            >
               {/* Sheet header */}
-              <SheetHeader className="border-b border-border/50 px-5 py-4">
+              <SheetHeader className="border-b border-brand-brown/15 px-5 py-4">
                 <SheetTitle>
                   <Logo />
                 </SheetTitle>
               </SheetHeader>
 
               {/* Search */}
-              <div className="px-5 py-4 border-b border-border/50">
-                <SearchBar />
+              <div className="px-5 py-4 border-b border-brand-brown/15">
+                <SearchBar
+                  placeholder="Search.."
+                  inputClassName="rounded-full bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none"
+                />
               </div>
 
               {/* Nav links */}
               <nav
                 className="flex flex-col px-2 py-3"
-                aria-label={t("nav.mainLabel")}
+                aria-label="Mobile navigation"
               >
-                {NAV_LINKS.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={
-                      "flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors " +
-                      (pathname === href || pathname.startsWith(href + "?")
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground")
-                    }
-                  >
-                    {label}
-                  </Link>
-                ))}
+                {NAV_LINKS.map(({ href, label }) => {
+                  const isActive =
+                    href === "/"
+                      ? pathname === "/"
+                      : pathname === href ||
+                        pathname.startsWith(href + "/") ||
+                        pathname.startsWith(href + "?");
+
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors",
+                        isActive
+                          ? "bg-brand-brown/10 text-brand-brown font-semibold"
+                          : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown"
+                      )}
+                    >
+                      {label}
+                    </Link>
+                  );
+                })}
               </nav>
 
               {/* Mobile Account Section */}
-              <div className="mt-auto border-t border-border/50 p-4 space-y-2">
+              <div className="mt-auto border-t border-brand-brown/15 p-4 space-y-2">
                 <Link
                   href="/account"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg bg-brand-brown text-brand-yellow text-sm font-medium hover:bg-brand-brown/90 transition-colors"
                 >
                   My Account
                 </Link>

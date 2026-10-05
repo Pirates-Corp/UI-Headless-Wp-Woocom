@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/defaultbutton";
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
 
+  // Dark mode is temporarily disabled for this client (Light Mode only).
+  // Return null to hide the theme toggle UI while preserving the
+  // existing component implementation and icon bindings for future reactivation.
+  const isDarkModeEnabled = false;
+  if (!isDarkModeEnabled) {
+    return null;
+  }
+
   return (
     <Button
       variant="ghost"
