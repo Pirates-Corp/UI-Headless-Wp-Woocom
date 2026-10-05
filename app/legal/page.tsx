@@ -3,7 +3,7 @@ import { LegalHubView } from "@/components/legal/legal-policy-view";
 
 export const metadata: Metadata = {
   title: "Legal & Policies",
-  description: "Browse the Round Logics development-stage legal and policy documents.",
+  description: "Browse the Clay Brush Studio legal and policy documents.",
   robots: { index: false, follow: false },
 };
 

@@ -9,7 +9,7 @@ describe("WhatsAppFloatingButton", () => {
       name: "Chat with us on WhatsApp",
     });
 
-    expect(link).toHaveAttribute("href", "https://wa.me/919345678221");
+    expect(link).toHaveAttribute("href", "https://wa.me/919787120055");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });

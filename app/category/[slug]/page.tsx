@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const category = await getCategoryBySlug(slug);
   if (!category) return { title: t("shop.title") };
   return {
-    title: `${decodeHtml(category.name)} | ${t("brand.name")}`,
+    title: decodeHtml(category.name),
     description: category.description?.replace(/<[^>]*>?/gm, "") || t("shop.description"),
   };
 }
