@@ -94,11 +94,27 @@ function getTrackingStatusBadge(status?: string | null) {
   );
 }
 
+function getFallbackStatusLabel(status?: string | null): string {
+
+  if (!status) return "Pending Fulfillment";
+  const normalized = status.toLowerCase().replace(/^wc-/, "");
+  if (normalized === "shipped") return "Shipped";
+  if (normalized === "completed") return "Delivered";
+  if (normalized === "rto") return "Returned to seller";
+  if (normalized === "cancelled") return "Cancelled";
+  if (normalized === "refunded") return "Refunded";
+  if (normalized === "processing") return "Processing";
+  if (normalized === "on-hold") return "On Hold";
+  if (normalized === "pending") return "Pending";
+  return status;
+}
+
 export function OrderTrackingView({
   orderId,
   orderNumber,
   orderStatus,
 }: OrderTrackingViewProps) {
+
   const [tracking, setTracking] = useState<OrderTrackingInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -202,8 +218,9 @@ export function OrderTrackingView({
         </div>
 
         <div className="flex items-center gap-2">
-          {getTrackingStatusBadge(tracking?.status || (orderStatus === "completed" ? "Dispatched" : orderStatus))}
+          {getTrackingStatusBadge(tracking?.status || getFallbackStatusLabel(orderStatus))}
           <Button
+
             variant="ghost"
             size="sm"
             onClick={fetchTracking}

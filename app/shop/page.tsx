@@ -9,6 +9,7 @@ import { productToEcommerceItem } from "@/lib/utils/gtm-items";
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { FireGTMEvent } from "@/components/analytics/fire-gtm-event";
 import { t } from "@/lib/i18n";
+import { decodeHtml } from "@/lib/utils/format";
 
 interface ShopPageProps {
   searchParams: Promise<{
@@ -24,7 +25,7 @@ export async function generateMetadata({ searchParams }: ShopPageProps): Promise
   if (params.category) {
     const cat = await getCategoryBySlug(params.category);
     if (cat) {
-      title = cat.name;
+      title = decodeHtml(cat.name);
       if (cat.description) {
         description = cat.description.replace(/<[^>]*>?/gm, "");
       }

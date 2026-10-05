@@ -248,7 +248,7 @@ export function AccountPageContent() {
               Wishlist
             </h2>
             <p className="text-xs text-muted-foreground">
-              Access your saved fragrances and wishlist items.
+              Access your saved 3D prints and wishlist items.
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-primary">
@@ -270,7 +270,7 @@ export function AccountPageContent() {
               Continue Shopping
             </h2>
             <p className="text-xs text-muted-foreground">
-              Explore our curated collection of luxury fragrances.
+              Explore our curated collection of 3D prints.
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-primary">

@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     // Query strings (e.g. ?id=GTM-XXXXX) are forwarded automatically.
     return [
       {
+        source: "/favicon.ico",
+        destination: "/assets/brand/favicon.svg",
+      },
+      {
         source: "/gtm/:path*",
         destination: "https://www.googletagmanager.com/:path*",
       },
@@ -20,6 +24,11 @@ const nextConfig: NextConfig = {
   logging: {
     fetches: {
       fullUrl: true,
+    },
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
     },
   },
   images: {

@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { constructStripeEvent, updateWooOrderStatus } from "@/lib/stripe-server";
+import {
+  constructStripeEvent,
+  getWooOrder,
+  markWooOrderPaid,
+  updateWooOrderStatus,
+  addWooOrderNote,
+  updateWooOrderMeta,
+  findWooOrderByTransactionId,
+  isLockedStatus,
+} from "@/lib/stripe-server";
 import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
@@ -26,16 +35,71 @@ async function handleSessionEvent(
     return null; // acknowledge anyway so Stripe doesn't retry
   }
 
+  // Extract payment intent ID (transactionId)
+  const transactionId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : (session.payment_intent as { id?: string } | null)?.id;
+
   // For checkout.session.completed with async payment methods, the
   // payment_status will be 'unpaid' — put the order on-hold instead.
+  const isPaid = session.payment_status === "paid" || targetStatus === "processing";
   const status =
     targetStatus === "processing" && session.payment_status !== "paid"
       ? "on-hold"
       : targetStatus;
 
   try {
-    await updateWooOrderStatus(orderId, status);
-    console.log(`[stripe webhook] WC order ${orderId} → ${status}`);
+    const wooOrder = await getWooOrder(orderId);
+    const currentStatus = (wooOrder.status || "").toLowerCase().replace(/^wc-/, "");
+
+    if (currentStatus === "cancelled") {
+      if (isPaid && session.payment_status === "paid") {
+        await addWooOrderNote(
+          orderId,
+          "Payment captured after cancellation, refund required"
+        );
+        await updateWooOrderMeta(orderId, [
+          { key: "_myapp_refund_pending", value: 1 },
+          { key: "_myapp_gateway", value: "stripe" },
+        ]);
+        console.warn(
+          `[stripe webhook] Payment captured for cancelled order ${orderId}; flagged refund pending.`
+        );
+      }
+      return null;
+    }
+
+    if (isLockedStatus(currentStatus)) {
+      console.log(
+        `[stripe webhook] Order ${orderId} is in locked status '${currentStatus}' — skipping update`
+      );
+      return null;
+    }
+
+    if (
+      currentStatus === "processing" &&
+      (status === "pending" || status === "on-hold" || status === "failed")
+    ) {
+      console.log(
+        `[stripe webhook] Cannot revert order ${orderId} from processing to ${status}`
+      );
+      return null;
+    }
+
+    if (status === "processing" && session.payment_status === "paid") {
+      await markWooOrderPaid(orderId, {
+        status: "processing",
+        transactionId,
+        gateway: "stripe",
+      });
+      console.log(
+        `[stripe webhook] WC order ${orderId} → processing (payment_intent: ${transactionId})`
+      );
+    } else if (status !== currentStatus) {
+      await updateWooOrderStatus(orderId, status);
+      console.log(`[stripe webhook] WC order ${orderId} → ${status}`);
+    }
   } catch (err) {
     // Return 500 so Stripe retries delivery
     console.error(`[stripe webhook] failed to update WC order ${orderId}:`, err);
@@ -68,6 +132,51 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
+  if (event.type === "charge.refunded") {
+    const charge = event.data.object as Stripe.Charge;
+    const paymentIntentId =
+      typeof charge.payment_intent === "string"
+        ? charge.payment_intent
+        : charge.payment_intent?.id;
+
+    let orderId: number | null = charge.metadata?.wc_order_id
+      ? Number(charge.metadata.wc_order_id)
+      : null;
+
+    if (!orderId && paymentIntentId) {
+      try {
+        const foundOrder = await findWooOrderByTransactionId(paymentIntentId);
+        if (foundOrder) {
+          orderId = foundOrder.id;
+        }
+      } catch (err) {
+        console.error("[stripe webhook] Error searching order for refunded charge:", err);
+      }
+    }
+
+    if (orderId) {
+      try {
+        await updateWooOrderMeta(orderId, [
+          { key: "_myapp_refund_status", value: "processed" },
+        ]);
+        await addWooOrderNote(
+          orderId,
+          `Stripe refund processed (Charge ID: ${charge.id})`
+        );
+        console.log(`[stripe webhook] Refund processed for order ${orderId}`);
+      } catch (err) {
+        console.error(`[stripe webhook] Failed to update refund meta for order ${orderId}:`, err);
+        return NextResponse.json(
+          { error: "Failed to update WooCommerce refund status. Will retry." },
+          { status: 500 }
+        );
+      }
+    } else {
+      console.warn(`[stripe webhook] charge.refunded: Could not find order for charge ${charge.id}`);
+    }
+    return NextResponse.json({ received: true, refundStatus: "processed" });
+  }
+
   const handled = EVENT_TO_WC_STATUS[event.type];
   if (handled) {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -78,3 +187,4 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({ received: true });
 }
+

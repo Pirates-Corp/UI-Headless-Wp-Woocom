@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { WooProduct } from "@/lib/woocommerce/types";
 import { t } from "@/lib/i18n";
+import { decodeHtml } from "@/lib/utils/format";
 
 interface ProductBreadcrumbProps {
   categories: WooProduct["categories"];
@@ -28,13 +29,13 @@ export function ProductBreadcrumb({ categories, productName }: ProductBreadcrumb
             href={`/category/${categories[0].slug}`}
             className="hover:text-foreground transition-colors"
           >
-            {categories[0].name}
+            {decodeHtml(categories[0].name)}
           </Link>
           <ChevronRight className="h-3 w-3" aria-hidden="true" />
         </>
       )}
       <span className="text-foreground truncate max-w-[200px]" aria-current="page">
-        {productName}
+        {decodeHtml(productName)}
       </span>
     </nav>
   );

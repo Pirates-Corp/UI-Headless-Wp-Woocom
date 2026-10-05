@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { decodeHtml } from "@/lib/utils/format";
 import { t } from "@/lib/i18n";
 import type { CurrencySettings, WooBrand, WooCategory, WooTag } from "@/lib/woocommerce/types";
 import { ShopFilterDrawer } from "@/components/shop/shop-filter-drawer";
@@ -137,10 +138,10 @@ export function ShopSortBar({
                   <Link
                     href={buildUrl({ category: null })}
                     title="Remove category filter"
-                    aria-label={`Remove category filter: ${category?.name ?? activeCategory}`}
+                    aria-label={`Remove category filter: ${decodeHtml(category?.name ?? activeCategory)}`}
                     className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
                   >
-                    <span>Category: <strong>{category?.name ?? activeCategory}</strong></span>
+                    <span>Category: <strong>{decodeHtml(category?.name ?? activeCategory)}</strong></span>
                     <X className="size-3.5" aria-hidden="true" />
                   </Link>
                 )}
@@ -159,10 +160,10 @@ export function ShopSortBar({
                   <Link
                     href={buildUrl({ brand: null })}
                     title="Remove brand filter"
-                    aria-label={`Remove brand filter: ${brand?.name ?? activeBrand}`}
+                    aria-label={`Remove brand filter: ${decodeHtml(brand?.name ?? activeBrand)}`}
                     className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
                   >
-                    <span>Brand: <strong>{brand?.name ?? activeBrand}</strong></span>
+                    <span>Brand: <strong>{decodeHtml(brand?.name ?? activeBrand)}</strong></span>
                     <X className="size-3.5" aria-hidden="true" />
                   </Link>
                 )}
@@ -170,10 +171,10 @@ export function ShopSortBar({
                   <Link
                     href={buildUrl({ tag: null })}
                     title="Remove tag filter"
-                    aria-label={`Remove tag filter: ${tag?.name ?? activeTag}`}
+                    aria-label={`Remove tag filter: ${decodeHtml(tag?.name ?? activeTag)}`}
                     className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent px-3 text-xs hover:bg-accent/70"
                   >
-                    <span>Tag: <strong>{tag?.name ?? activeTag}</strong></span>
+                    <span>Tag: <strong>{decodeHtml(tag?.name ?? activeTag)}</strong></span>
                     <X className="size-3.5" aria-hidden="true" />
                   </Link>
                 )}

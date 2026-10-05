@@ -1,5 +1,6 @@
 import { t } from "@/lib/i18n";
 import type { WooCategory } from "@/lib/woocommerce/types";
+import { decodeHtml } from "@/lib/utils/format";
 
 interface ShopHeaderProps {
   onSale: boolean;
@@ -10,7 +11,7 @@ export function ShopHeader({ onSale, category }: ShopHeaderProps) {
   const title = onSale
     ? t("shop.onSale")
     : category?.name
-    ? category.name
+    ? decodeHtml(category.name)
     : t("shop.allFragrances");
 
   return (

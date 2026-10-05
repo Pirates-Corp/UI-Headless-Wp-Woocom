@@ -18,7 +18,7 @@ const mockCategories: WooCategory[] = [
 describe("ShopHeader", () => {
   it("renders the default title", () => {
     render(<ShopHeader onSale={false} />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("All Fragrances");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("All 3D Prints");
   });
 
   it("renders the sale title", () => {
@@ -50,6 +50,25 @@ describe("ShopSortBar", () => {
     render(<ShopSortBar {...common} searchParams={{ category: "herbals" }} activeCategory="herbals" />);
     expect(screen.getByRole("button", { name: "All Filters" })).toBeInTheDocument();
     expect(screen.getByTitle("Remove category filter")).toBeInTheDocument();
+  });
+
+  it("decodes HTML entities in active category filter badge", () => {
+    const categoriesWithEntities: WooCategory[] = [
+      { id: 99, name: "Spiritual &amp; Religious Decor", slug: "spiritual-religious-decor", description: "", parent: 0, count: 5, image: null },
+    ];
+    render(
+      <ShopSortBar
+        {...common}
+        categories={categoriesWithEntities}
+        searchParams={{ category: "spiritual-religious-decor" }}
+        activeCategory="spiritual-religious-decor"
+      />
+    );
+    expect(screen.getByText(/Category:/)).toHaveTextContent("Category: Spiritual & Religious Decor");
+    expect(screen.getByTitle("Remove category filter")).toHaveAttribute(
+      "aria-label",
+      "Remove category filter: Spiritual & Religious Decor"
+    );
   });
 
   it("renders an active brand chip without changing other filter controls", () => {
