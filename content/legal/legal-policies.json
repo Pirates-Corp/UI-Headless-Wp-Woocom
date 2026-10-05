@@ -82,31 +82,37 @@
     "relatedPolicies":["terms-and-conditions","cancellation-policy","returns-refunds"]
   },
   {
-    "policyId":"cancellation-policy","title":"Cancellation Policy","slug":"cancellation-policy","status":"draft","version":"draft-1","effectiveDate":null,"lastUpdated":null,
-    "summary":"A controlled draft for explaining when an order may be cancelled and what happens after cancellation is requested.",
+    "policyId":"cancellation-policy","title":"Cancellation Policy","slug":"cancellation-policy","status":"approved","version":"v1.1","effectiveDate":"2026-10-01","lastUpdated":"2026-10-01",
+    "summary":"Clear guidelines explaining when an order can be cancelled and how refunds are automatically processed.",
     "sections":[
-      {"id":"cancellation-overview","title":"Cancellation Overview","blocks":[{"type":"paragraph","text":"This Cancellation Policy is a development draft. The final cancellation window, supported channels, order statuses, and refund handling must be confirmed against the actual operations and payment flows."}]},
-      {"id":"before-dispatch","title":"Cancellation Before Dispatch","blocks":[{"type":"paragraph","text":"Cancellation before dispatch: [ELIGIBILITY AND PROCESS — TO BE CONFIRMED]. A request should not be treated as accepted until the order system or support team confirms it."}]},
-      {"id":"after-dispatch","title":"Cancellation After Dispatch","blocks":[{"type":"paragraph","text":"Cancellation after dispatch: [ELIGIBILITY AND PROCESS — TO BE CONFIRMED]. Customers may need to follow the returns or delivery-exception process instead."}]},
-      {"id":"refund-after-cancellation","title":"Refund After Cancellation","blocks":[{"type":"paragraph","text":"Refund method and timing after an accepted cancellation: [REFUND METHOD AND TIMELINE — TO BE CONFIRMED]. No refund window is promised by this draft."}]},
-      {"id":"cancellation-contact","title":"Contact","blocks":[{"type":"paragraph","text":"For general development-stage cancellation questions, use the contact details shown in the contact card on this page."}]}
+      {"id":"cancellation-overview","title":"Cancellation Overview","blocks":[{"type":"paragraph","text":"We want you to be completely satisfied with your purchase. You can easily cancel eligible orders directly from your account page before shipping has been initiated."}]},
+      {"id":"before-dispatch","title":"Cancellation Before Shipment","blocks":[{"type":"paragraph","text":"You can cancel your order self-service as long as it is in Pending, On-Hold, or Processing status and has not yet been assigned a courier tracking number (AWB). Once an AWB is generated and shipment is initiated, self-service cancellation is disabled."}]},
+      {"id":"after-dispatch","title":"Cancellation After Shipment","blocks":[{"type":"paragraph","text":"Once a tracking number has been assigned or the order has been handed to the courier partner, the order cannot be cancelled directly. If you need assistance, you can contact our WhatsApp support team or wait for delivery and initiate a return within the return window."}]},
+      {"id":"refund-after-cancellation","title":"Refund After Cancellation","blocks":[{"type":"paragraph","text":"For prepaid orders (paid via Credit/Debit Cards, UPI, Net Banking, Razorpay, or Stripe), cancelling your order automatically initiates a full refund of 100% of your payment (including all product and shipping charges) back to your original payment method. The refund is typically reflected in your bank account or card within 5 to 7 business days. For Cash on Delivery (COD) orders, no payment was made, so the order is immediately cancelled without any financial transaction."}]},
+      {"id":"cancellation-contact","title":"Contact Support","blocks":[{"type":"paragraph","text":"If you have any questions regarding order cancellation, please reach out to our customer support team through our WhatsApp helpline or email us."}]}
     ],
     "relatedPolicies":["terms-and-conditions","shipping-policy","returns-refunds"]
   },
   {
-    "policyId":"returns-refunds","title":"Returns, Refunds & Replacement","slug":"returns-refunds","status":"draft","version":"draft-1","effectiveDate":null,"lastUpdated":null,
-    "summary":"A replaceable framework for returns, refunds, replacement requests, and product-condition review while client rules are being confirmed.",
+    "policyId":"returns-refunds","title":"Returns, Refunds & Replacement","slug":"returns-refunds","status":"approved","version":"v1.1","effectiveDate":"2026-10-01","lastUpdated":"2026-10-01",
+    "summary":"Our 7-day return policy, eligibility conditions, proof requirements, and refund calculation rules.",
     "sections":[
-      {"id":"returns-overview","title":"Returns Overview","blocks":[{"type":"paragraph","text":"This Returns, Refunds & Replacement Policy is controlled development content. The applicable product categories, return window, condition requirements, channels, and inspection process must be confirmed before publication."}]},
-      {"id":"return-eligibility","title":"Return Eligibility","blocks":[{"type":"paragraph","text":"Return window: [RETURN WINDOW — TO BE CONFIRMED]. Eligible products, exclusions, packaging requirements, and proof-of-purchase requirements are [TO BE CONFIRMED]."}]},
-      {"id":"non-returnable-items","title":"Non-Returnable Items","blocks":[{"type":"paragraph","text":"Non-returnable or restricted items: [TO BE CONFIRMED]. Product-specific exclusions should be shown near the product decision and should not be hidden only in a long document."}]},
-      {"id":"damaged-defective-or-incorrect","title":"Damaged, Defective, or Incorrect Products","blocks":[{"type":"paragraph","text":"Reporting channel, evidence, inspection, and resolution for a damaged, defective, missing, or incorrect product: [PROCESS — TO BE CONFIRMED]."}]},
-      {"id":"replacement","title":"Replacement","blocks":[{"type":"paragraph","text":"Replacement availability and conditions: [REPLACEMENT TERMS — TO BE CONFIRMED]. A replacement should not be promised where stock or product-specific rules do not support it."}]},
-      {"id":"refund-method-and-timeline","title":"Refund Method and Timeline","blocks":[{"type":"paragraph","text":"Refund method: [REFUND METHOD — TO BE CONFIRMED]. Refund timeline: [REFUND TIMELINE — TO BE CONFIRMED]. The final version should distinguish approval, inspection, initiation, and receipt of funds."}]},
-      {"id":"shipping-charges-and-promotions","title":"Shipping Charges and Promotions","blocks":[{"type":"paragraph","text":"Treatment of shipping charges, discounts, bundles, promotional items, and partially returned orders: [TO BE CONFIRMED]. Applicable conditions should be visible wherever an offer is presented."}]},
-      {"id":"inspection-and-verification","title":"Inspection and Verification","blocks":[{"type":"paragraph","text":"Any inspection or verification step must be described accurately and applied consistently. The final team, evidence, and decision process are [TO BE CONFIRMED]."}]},
-      {"id":"returns-contact","title":"Contact","blocks":[{"type":"paragraph","text":"For general development-stage returns, refunds, or replacement questions, use the contact details shown in the contact card on this page."}]}
+      {"id":"returns-overview","title":"Returns Overview","blocks":[{"type":"paragraph","text":"We stand behind the quality of our products. If you are not satisfied with your purchase or if you receive a damaged, defective, or incorrect item, you can request a return within 7 days of delivery."}]},
+      {"id":"return-eligibility","title":"7-Day Return Window","blocks":[{"type":"paragraph","text":"Returns can be requested directly from your account within 7 days of the confirmed delivery date. The deadline applies to submitting your return request online, after which our team will arrange the reverse pickup."}]},
+      {"id":"non-returnable-items","title":"Condition Requirements","blocks":[{"type":"paragraph","text":"Returned items must be in their original condition, unused, and with original packaging, tags, and accessories intact. Consumable items that have been extensively used or altered may not be eligible for a refund."}]},
+      {"id":"damaged-defective-or-incorrect","title":"Damaged, Defective, or Incorrect Products","blocks":[{"type":"paragraph","text":"If you received a damaged item, manufacturing defect, or wrong item, please select the appropriate reason and upload clear photos showing the issue during the return request. Upon verification, you will receive a full refund of 100% of the item cost plus shipping charges."}]},
+      {"id":"refund-method-and-timeline","title":"Refund Calculation and Process","blocks":[
+        {"type":"paragraph","text":"The refund amount depends on the return reason:"},
+        {"type":"list","items":[
+          "Damaged, Defective, or Wrong Item: Full refund of 100% of the product cost plus original shipping charges.",
+          "Changed Mind or Other Reason: Refund of the product cost (excluding shipping charges)."
+        ]},
+        {"type":"paragraph","text":"For prepaid orders, the refund is processed automatically to your original payment method once the returned item is received and inspected at our warehouse. For COD orders, our support team will disburse the refund to your designated UPI ID or bank account within 3-5 business days of receipt."}
+      ]},
+      {"id":"inspection-and-verification","title":"Reverse Pickup and Inspection","blocks":[{"type":"paragraph","text":"Once your return request is approved by our team, a courier partner will be assigned to collect the item from your delivery address. After receipt and quick verification at our facility, the refund status will update in your account."}]},
+      {"id":"returns-contact","title":"Contact Support","blocks":[{"type":"paragraph","text":"For questions about returns or reverse logistics, contact our customer service team via WhatsApp or email."}]}
     ],
     "relatedPolicies":["terms-and-conditions","shipping-policy","cancellation-policy"]
   }
+
 ]

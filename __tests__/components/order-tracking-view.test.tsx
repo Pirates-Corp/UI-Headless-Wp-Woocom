@@ -140,4 +140,56 @@ describe("OrderTrackingView Component", () => {
 
     expect(writeTextMock).toHaveBeenCalledWith("9876543210");
   });
+
+  it("renders fallback status badge 'Shipped' when order is shipped and tracking status is empty", async () => {
+    (getOrderTrackingAction as jest.Mock).mockResolvedValue({
+      success: true,
+      tracking: {
+        orderId: 105,
+        status: null,
+        scans: [],
+      },
+    });
+
+    render(<OrderTrackingView orderId={105} orderStatus="shipped" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Shipped")).toBeInTheDocument();
+    });
+  });
+
+  it("renders fallback status badge 'Delivered' when order is completed and tracking status is empty", async () => {
+    (getOrderTrackingAction as jest.Mock).mockResolvedValue({
+      success: true,
+      tracking: {
+        orderId: 106,
+        status: null,
+        scans: [],
+      },
+    });
+
+    render(<OrderTrackingView orderId={106} orderStatus="completed" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Delivered")).toBeInTheDocument();
+    });
+  });
+
+  it("renders fallback status badge 'Returned to seller' when order is rto and tracking status is empty", async () => {
+    (getOrderTrackingAction as jest.Mock).mockResolvedValue({
+      success: true,
+      tracking: {
+        orderId: 107,
+        status: null,
+        scans: [],
+      },
+    });
+
+    render(<OrderTrackingView orderId={107} orderStatus="rto" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Returned to seller")).toBeInTheDocument();
+    });
+  });
 });
+

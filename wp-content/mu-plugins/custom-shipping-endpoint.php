@@ -1,14 +1,70 @@
 <?php
 /**
  * Plugin Name: MyApp Shiprocket & Shipping Tracking Endpoints
- * Description: Custom REST API endpoints to receive Shiprocket tracking webhooks, save tracking metadata to WooCommerce orders, and securely expose tracking to the headless Next.js frontend.
- * Version: 1.0.0
+ * Description: Custom REST API endpoints to receive Shiprocket tracking webhooks, save tracking metadata to WooCommerce orders, automate order statuses, and securely expose tracking to the headless Next.js frontend.
+ * Version: 1.1.0
  * Author: Siva
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
+
+/**
+ * Register custom WooCommerce order statuses for automated shipping.
+ */
+add_action('init', function () {
+    register_post_status('wc-shipped', [
+        'label'                     => _x('Shipped', 'Order status', 'woocommerce'),
+        'public'                    => true,
+        'exclude_from_search'       => false,
+        'show_in_admin_all_list'    => true,
+        'show_in_admin_status_list' => true,
+        'label_count'               => _n_noop('Shipped <span class="count">(%s)</span>', 'Shipped <span class="count">(%s)</span>', 'woocommerce'),
+    ]);
+
+    register_post_status('wc-rto', [
+        'label'                     => _x('Returned to origin', 'Order status', 'woocommerce'),
+        'public'                    => true,
+        'exclude_from_search'       => false,
+        'show_in_admin_all_list'    => true,
+        'show_in_admin_status_list' => true,
+        'label_count'               => _n_noop('Returned to origin <span class="count">(%s)</span>', 'Returned to origin <span class="count">(%s)</span>', 'woocommerce'),
+    ]);
+});
+
+/**
+ * Add custom statuses to WooCommerce order status list.
+ */
+add_filter('wc_order_statuses', function ($order_statuses) {
+    $new_statuses = [];
+    foreach ($order_statuses as $key => $status) {
+        $new_statuses[$key] = $status;
+        if ($key === 'wc-processing') {
+            $new_statuses['wc-shipped'] = _x('Shipped', 'Order status', 'woocommerce');
+        }
+        if ($key === 'wc-completed') {
+            $new_statuses['wc-rto'] = _x('Returned to origin', 'Order status', 'woocommerce');
+        }
+    }
+    if (!isset($new_statuses['wc-shipped'])) {
+        $new_statuses['wc-shipped'] = _x('Shipped', 'Order status', 'woocommerce');
+    }
+    if (!isset($new_statuses['wc-rto'])) {
+        $new_statuses['wc-rto'] = _x('Returned to origin', 'Order status', 'woocommerce');
+    }
+    return $new_statuses;
+});
+
+/**
+ * Treat 'shipped' as a paid status.
+ */
+add_filter('woocommerce_order_is_paid_statuses', function ($statuses) {
+    if (!in_array('shipped', $statuses, true)) {
+        $statuses[] = 'shipped';
+    }
+    return $statuses;
+});
 
 /**
  * Retrieve the configured persistent cart / internal API AUTH_KEY.
@@ -181,6 +237,63 @@ function myapp_find_order_by_channel_id($channel_order_id) {
 }
 
 /**
+ * Maps incoming Shiprocket numeric status ID and string status label to target WooCommerce status.
+ *
+ * @param int|string $status_id
+ * @param string $status_label
+ * @return string|null
+ */
+function myapp_map_shiprocket_status($status_id, $status_label) {
+    $status_id = (int) $status_id;
+    $label = strtolower(trim((string) $status_label));
+
+    // Shiprocket Status IDs:
+    // 6: SHIPPED, 17: IN TRANSIT, 18: OUT FOR DELIVERY, 42: PICKED UP, 43: HANDOVER PENDING,
+    // 38: IN TRANSIT (DEST), 39: OUT FOR DELIVERY (DEST), 54: IN TRANSIT (HUB)
+    $shipped_ids = [6, 17, 18, 42, 43, 38, 39, 54];
+    if (in_array($status_id, $shipped_ids, true)) {
+        return 'shipped';
+    }
+
+    // 19: DELIVERED, 7: DELIVERED (legacy), 40: DELIVERED (DEST)
+    $delivered_ids = [19, 7, 40];
+    if (in_array($status_id, $delivered_ids, true)) {
+        return 'completed';
+    }
+
+    // 22: RTO INITIATED, 23: RTO DELIVERED, 24: RTO IN TRANSIT, 9: RTO (legacy),
+    // 14: RTO ACK, 15: RTO NDR, 16: RTO OFD, 25: RTO NDR, 56: RTO LOCK
+    $rto_ids = [22, 23, 24, 9, 14, 15, 16, 25, 56];
+    if (in_array($status_id, $rto_ids, true)) {
+        return 'rto';
+    }
+
+    // 21: CANCELED, 8: CANCELED (legacy), 41: CANCELLED BEFORE DISPATCH
+    $cancelled_ids = [21, 8, 41];
+    if (in_array($status_id, $cancelled_ids, true)) {
+        return 'cancelled';
+    }
+
+    // Fallback matching on lowercase label:
+    if (!empty($label)) {
+        if (strpos($label, 'deliver') !== false && strpos($label, 'out for') === false && strpos($label, 'undeliver') === false && strpos($label, 'rto') === false) {
+            return 'completed';
+        }
+        if (strpos($label, 'rto') !== false || strpos($label, 'return to origin') !== false) {
+            return 'rto';
+        }
+        if (strpos($label, 'ship') !== false || strpos($label, 'in transit') !== false || strpos($label, 'out for delivery') !== false || strpos($label, 'picked up') !== false || strpos($label, 'handover') !== false) {
+            return 'shipped';
+        }
+        if (strpos($label, 'cancel') !== false) {
+            return 'cancelled';
+        }
+    }
+
+    return null; // NDR, delayed, unmapped
+}
+
+/**
  * REST Callback: Handle incoming Shiprocket tracking webhook.
  * POST /wp-json/myapp/v1/shipping/shiprocket/webhook
  * POST /wp-json/myapp/v1/shipping/webhook
@@ -259,6 +372,71 @@ function myapp_handle_shiprocket_webhook(WP_REST_Request $request) {
 
     $order->update_meta_data('_myapp_shiprocket_scans', wp_json_encode($sanitized_scans));
     $order->update_meta_data('_myapp_shiprocket_updated_at', current_time('mysql'));
+
+    // Status mapping & safety transition rules
+    $target_status = myapp_map_shiprocket_status($current_status_id, $current_status);
+    if (!empty($target_status)) {
+        $raw_current = strtolower(str_replace('wc-', '', (string) $order->get_status()));
+
+        // Locked terminal statuses that must never change from shipping webhook
+        $is_locked = in_array($raw_current, ['cancelled', 'refunded'], true) || (strpos($raw_current, 'return-') === 0);
+
+        if (!$is_locked) {
+            $status_ranks = [
+                'pending'    => 1,
+                'on-hold'    => 2,
+                'processing' => 3,
+                'shipped'    => 4,
+                'completed'  => 5,
+            ];
+
+            $current_rank = $status_ranks[$raw_current] ?? null;
+            $target_rank = $status_ranks[$target_status] ?? null;
+
+            // Handle RTO transition specifically
+            if ($target_status === 'rto') {
+                if ($raw_current !== 'rto') {
+                    // Check if prepaid
+                    $tx_id = (string) $order->get_transaction_id();
+                    $payment_method = strtolower((string) $order->get_payment_method());
+                    $is_prepaid = (!empty($tx_id) && $payment_method !== 'cod' && $payment_method !== 'bacs') ||
+                                  (!empty($order->get_date_paid()) && $payment_method !== 'cod');
+
+                    if ($is_prepaid) {
+                        $order->update_meta_data('_myapp_refund_pending', 1);
+                        $order->add_order_note('RTO on prepaid order, refund required');
+                    }
+
+                    $order->update_status('rto', 'Shiprocket: ' . ($current_status ?: 'RTO'));
+                }
+            } elseif ($target_status === 'completed') {
+                // Moving to completed (Delivered)
+                if ($current_rank !== null && $target_rank !== null && $target_rank < $current_rank) {
+                    // Ignore rank downgrade
+                    error_log(sprintf('[Shiprocket Webhook] Ignored downgrade for order %d from %s to %s', $order->get_id(), $raw_current, $target_status));
+                } else {
+                    if (empty($order->get_meta('_myapp_delivered_at'))) {
+                        $order->update_meta_data('_myapp_delivered_at', gmdate('c'));
+                    }
+                    if ($raw_current !== 'completed') {
+                        $order->update_status('completed', 'Shiprocket: ' . ($current_status ?: 'Delivered'));
+                    }
+                }
+            } elseif ($target_status === 'shipped') {
+                if ($current_rank !== null && $target_rank !== null && $target_rank < $current_rank) {
+                    // Ignore rank downgrade (e.g. if already completed)
+                    error_log(sprintf('[Shiprocket Webhook] Ignored downgrade for order %d from %s to %s', $order->get_id(), $raw_current, $target_status));
+                } elseif ($raw_current !== 'shipped') {
+                    $order->update_status('shipped', 'Shiprocket: ' . ($current_status ?: 'Shipped'));
+                }
+            } elseif ($target_status === 'cancelled') {
+                if ($raw_current !== 'cancelled') {
+                    $order->update_status('cancelled', 'Shiprocket: ' . ($current_status ?: 'Cancelled'));
+                }
+            }
+        }
+    }
+
     $order->save();
 
     return new WP_REST_Response([
@@ -357,6 +535,93 @@ function myapp_get_shipping_tracking_endpoint(WP_REST_Request $request) {
 }
 
 /**
+ * Add Refund Pending column in WooCommerce Order List (HPOS & Classic).
+ */
+add_filter('manage_woocommerce_page_wc-orders_columns', 'myapp_add_order_refund_pending_column');
+add_filter('manage_edit-shop_order_columns', 'myapp_add_order_refund_pending_column');
+function myapp_add_order_refund_pending_column($columns) {
+    $columns['myapp_refund_pending'] = __('Refund Alert', 'woocommerce');
+    return $columns;
+}
+
+add_action('manage_woocommerce_page_wc-orders_custom_column', 'myapp_render_order_refund_pending_column', 10, 2);
+add_action('manage_shop_order_posts_custom_column', 'myapp_render_order_refund_pending_column_classic', 10, 2);
+
+function myapp_render_order_refund_pending_column($column_name, $order) {
+    if ($column_name === 'myapp_refund_pending' && $order instanceof WC_Order) {
+        $pending = $order->get_meta('_myapp_refund_pending');
+        if (!empty($pending) && (string)$pending === '1') {
+            echo '<mark class="order-status status-processing tips" style="background:#ffefe5;color:#d63638;font-weight:600;padding:3px 8px;border-radius:4px;">' . esc_html__('Refund Pending', 'woocommerce') . '</mark>';
+        } else {
+            echo '<span style="color:#a0a0a0;">—</span>';
+        }
+    }
+}
+
+function myapp_render_order_refund_pending_column_classic($column_name, $post_id) {
+    if ($column_name === 'myapp_refund_pending') {
+        $order = wc_get_order($post_id);
+        if ($order instanceof WC_Order) {
+            myapp_render_order_refund_pending_column($column_name, $order);
+        }
+    }
+}
+
+/**
+ * Filter orders list by _myapp_refund_pending in WP Admin.
+ */
+add_action('restrict_manage_posts', 'myapp_admin_orders_filter_refund_pending');
+add_action('woocommerce_order_list_table_extra_tablenav', 'myapp_admin_orders_filter_refund_pending_hpos');
+
+function myapp_admin_orders_filter_refund_pending() {
+    global $typenow;
+    if ($typenow === 'shop_order') {
+        myapp_render_refund_pending_filter_select();
+    }
+}
+
+function myapp_admin_orders_filter_refund_pending_hpos() {
+    myapp_render_refund_pending_filter_select();
+}
+
+function myapp_render_refund_pending_filter_select() {
+    $current = isset($_GET['_myapp_filter_refund_pending']) ? sanitize_text_field($_GET['_myapp_filter_refund_pending']) : '';
+    ?>
+    <select name="_myapp_filter_refund_pending">
+        <option value=""><?php esc_html_e('All Refund Statuses', 'woocommerce'); ?></option>
+        <option value="1" <?php selected($current, '1'); ?>><?php esc_html_e('Refund Pending Only', 'woocommerce'); ?></option>
+    </select>
+    <?php
+}
+
+add_filter('woocommerce_order_list_table_prepare_items_query_args', function ($args) {
+    if (!empty($_GET['_myapp_filter_refund_pending']) && $_GET['_myapp_filter_refund_pending'] === '1') {
+        $meta_query = $args['meta_query'] ?? [];
+        $meta_query[] = [
+            'key'     => '_myapp_refund_pending',
+            'value'   => 1,
+            'compare' => '=',
+        ];
+        $args['meta_query'] = $meta_query;
+    }
+    return $args;
+});
+
+add_filter('request', function ($vars) {
+    global $typenow;
+    if ($typenow === 'shop_order' && !empty($_GET['_myapp_filter_refund_pending']) && $_GET['_myapp_filter_refund_pending'] === '1') {
+        $vars['meta_query'] = [
+            [
+                'key'     => '_myapp_refund_pending',
+                'value'   => 1,
+                'compare' => '=',
+            ],
+        ];
+    }
+    return $vars;
+});
+
+/**
  * Register custom shipping REST routes.
  */
 add_action('rest_api_init', function () {
@@ -381,3 +646,4 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 });
+

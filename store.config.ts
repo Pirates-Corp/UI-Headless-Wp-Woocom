@@ -12,6 +12,28 @@ export const STORE_CONFIG = {
     // Keep the number in international format; the URL helper removes formatting characters.
     phoneNumber: "+91 9345678221",
   },
+  orders: {
+    returnWindowDays: 7,
+    cancelReasons: [
+      "ordered_by_mistake",
+      "found_better_price",
+      "delivery_too_slow",
+      "changed_mind",
+      "other",
+    ] as const,
+    returnReasons: [
+      "damaged",
+      "defective",
+      "wrong_item",
+      "changed_mind",
+      "other",
+    ] as const,
+    fullRefundReturnReasons: [
+      "damaged",
+      "defective",
+      "wrong_item",
+    ] as const,
+  },
 } as const;
 
 export const APP_CONFIG = STORE_CONFIG;
