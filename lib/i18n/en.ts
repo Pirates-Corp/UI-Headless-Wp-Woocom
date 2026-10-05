@@ -7,10 +7,10 @@ export const en: Record<string, string> = {
   "lang": "en",
 
   "brand.name": "Next.js WooCommerce",
-  "brand.tagline": "Fine Fragrances",
-  "brand.description": "Premium fragrances crafted for the discerning connoisseur. Each bottle tells a story.",
+  "brand.tagline": "Fine 3D Prints",
+  "brand.description": "Premium 3D prints crafted for the discerning connoisseur. Each piece tells a story.",
   "brand.copyright": "All rights reserved.",
-  "brand.fineLine": "Fine fragrances for every occasion.",
+  "brand.fineLine": "Fine 3D prints for every occasion.",
 
   "nav.mainLabel": "Main navigation",
   "nav.shopAll": "Shop All",
@@ -41,8 +41,8 @@ export const en: Record<string, string> = {
   "cart.sheetTitle": "Your Cart",
   "cart.emptyTitle": "Your Cart is Empty",
   "cart.emptyHint": "Looks like you haven\u2019t added anything to your cart yet.",
-  "cart.emptySheetHint": "Discover our collection of fine fragrances.",
-  "cart.shopAll": "Shop All Fragrances",
+  "cart.emptySheetHint": "Discover our collection of fine 3D prints.",
+  "cart.shopAll": "Shop All 3D Prints",
   "cart.continueShopping": "Continue Shopping",
   "cart.proceedToCheckout": "Proceed to Checkout",
   "cart.viewFullCart": "View Full Cart",
@@ -62,7 +62,7 @@ export const en: Record<string, string> = {
   "wishlist.itemSingular": "item",
   "wishlist.itemPlural": "items",
   "wishlist.emptyTitle": "Your wishlist is empty",
-  "wishlist.emptyHint": "Save your favourite fragrances here so you can find them easily later.",
+  "wishlist.emptyHint": "Save your favourite 3D prints here so you can find them easily later.",
   "wishlist.browseCollection": "Browse the Collection",
   "wishlist.clearAll": "Clear all",
   "wishlist.wishlistCleared": "Wishlist cleared",
@@ -119,8 +119,8 @@ export const en: Record<string, string> = {
   "shop.pageTitle": "Shop",
   "shop.collection": "Collection",
   "shop.title": "Shop",
-  "shop.description": "Browse our collection of premium fragrances.",
-  "shop.allFragrances": "All Fragrances",
+  "shop.description": "Browse our collection of premium 3D prints.",
+  "shop.allFragrances": "All 3D Prints",
   "shop.onSale": "On Sale",
   "shop.sortBy": "Sort by",
   "shop.showSaleOnly": "Show Sale Only",
@@ -140,11 +140,11 @@ export const en: Record<string, string> = {
   "shop.sort.priceHigh": "Sort by price: high to low",
   "shop.sort.newest": "Newest",
 
-  "home.hero.eyebrow": "The Art of Fragrance",
+  "home.hero.eyebrow": "The Art of 3D Prints",
   "home.hero.heading1": "WooCoommerce",
   "home.hero.heading2": "headless Next.js",
   "home.hero.heading3": "storefront",
-  "home.hero.description": "Premium fragrances crafted for the discerning connoisseur.\n Explore our curated collection of timeless scents.",
+  "home.hero.description": "Premium 3D prints crafted for the discerning connoisseur.\n Explore our curated collection of timeless designs.",
   "home.hero.shopNow": "Shop Now",
   "home.hero.viewSale": "View Sale",
 
@@ -157,8 +157,8 @@ export const en: Record<string, string> = {
   "home.trust.shipping.title": "Type-Safe Stack",
   "home.trust.shipping.desc": "TypeScript and Zod at every boundary, with Jest + React Testing Library coverage.",
 
-  "home.featured.title": "Featured Fragrances",
-  "home.featured.description": "Explore our curated collection of timeless scents.",
+  "home.featured.title": "Featured 3D Prints",
+  "home.featured.description": "Explore our curated collection of timeless designs.",
   "home.featured.viewAll": "View All",
   "home.featured.noProducts": "No products found. Please check your store configuration.",
 
@@ -168,7 +168,7 @@ export const en: Record<string, string> = {
 
   "home.brandStory.eyebrow": "Our Philosophy",
   "home.brandStory.heading": "Scent Is the Memory of the Soul",
-  "home.brandStory.description": "Every fragrance in our collection is a journey \u2014 blending rare botanicals,\n            precious resins, and timeless accords into something unforgettable.",
+  "home.brandStory.description": "Every 3D print in our collection is a journey \u2014 blending precision design,\n            premium materials, and artisanal craftsmanship into something unforgettable.",
   "home.brandStory.cta": "Explore the Collection",
 
   "checkout.pageTitle": "Checkout",

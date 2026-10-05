@@ -385,7 +385,7 @@ export function OrdersPageContent() {
           <h2 className="font-heading text-xl font-bold">No orders placed yet</h2>
           <p className="text-sm text-muted-foreground max-w-sm">
             You haven&apos;t made any purchases with this account yet. Explore our
-            fragrance catalog to get started.
+            3D prints catalog to get started.
           </p>
           <Link
             href="/shop"

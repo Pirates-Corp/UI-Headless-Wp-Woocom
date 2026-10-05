@@ -39,6 +39,16 @@ export const metadata: Metadata = {
   },
   description:
     t('brand.description'),
+  icons: {
+    icon: [
+      {
+        url: "/assets/brand/favicon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    shortcut: "/assets/brand/favicon.svg",
+    apple: "/assets/brand/favicon.svg",
+  },
   openGraph: {
     type: "website",
     siteName: t('brand.name'),
@@ -64,6 +74,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <head>
+        <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg" />
+        <link rel="apple-touch-icon" href="/assets/brand/favicon.svg" />
         {process.env.NEXT_PUBLIC_GTM_ID && (
           <script
             dangerouslySetInnerHTML={{

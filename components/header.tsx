@@ -35,11 +35,11 @@ function Logo() {
       aria-label="Clay Brush Studio Home"
     >
       <Image
-        src="/offical-claybrush-logo/claybrush-logo-d.svg"
+        src="/assets/brand/logo-dark.svg"
         alt="Clay Brush Studio"
-        width={63}
-        height={44}
-        className="h-9 sm:h-10 w-auto object-contain"
+        width={145}
+        height={100}
+        className="h-10 sm:h-12 w-auto object-contain"
         priority
       />
     </Link>

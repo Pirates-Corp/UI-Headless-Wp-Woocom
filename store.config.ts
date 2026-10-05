@@ -1,16 +1,16 @@
 export const STORE_CONFIG = {
-  brand: "Round Logics",
+  brand: "CLAY BRUSH STUDIO",
   address: [
-    "Leepushpam Trust, No. 93, Shop Complex,",
-    "Five Rathas St,",
-    "Mahabalipuram,",
-    "Tamil Nadu 603104",
+    "3/420 Navaladi Patty Road",
+    "Pavithiram (PO)",
+    "Namakkal(DT)",
+    "Tamil Nadu, India",
   ],
-  phone: "098407 93240",
-  email: "hello@roundlogics.com",
+  phone: "+91 9787120055",
+  email: "info@claybrushstudio.com",
   whatsapp: {
     // Keep the number in international format; the URL helper removes formatting characters.
-    phoneNumber: "+91 9345678221",
+    phoneNumber: "+91 9787120055",
   },
   orders: {
     returnWindowDays: 7,
@@ -34,6 +34,11 @@ export const STORE_CONFIG = {
       "wrong_item",
     ] as const,
   },
+  social : {
+    instagram : "https://www.instagram.com/claybrushstudio/?hl=en#",
+    whatsApp : "+919787120055",
+    youtube: "https://youtube.com/@claybrushstudio?si=SW1ni6usbz5YdGSR"
+  }
 } as const;
 
 export const APP_CONFIG = STORE_CONFIG;

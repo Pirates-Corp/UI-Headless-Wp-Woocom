@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCategoryBySlug } from "@/lib/woocommerce/api";
 import { t } from "@/lib/i18n";
+import { decodeHtml } from "@/lib/utils/format";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const category = await getCategoryBySlug(slug);
   if (!category) return { title: t("shop.title") };
   return {
-    title: `${category.name} | ${t("brand.name")}`,
+    title: `${decodeHtml(category.name)} | ${t("brand.name")}`,
     description: category.description?.replace(/<[^>]*>?/gm, "") || t("shop.description"),
   };
 }

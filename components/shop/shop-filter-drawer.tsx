@@ -8,6 +8,7 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger 
 import { Button } from "@/components/ui/defaultbutton";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { decodeHtml } from "@/lib/utils/format";
 import type { CurrencySettings, WooBrand, WooCategory, WooTag } from "@/lib/woocommerce/types";
 
 const PRICE_MAX = 5000;
@@ -193,7 +194,7 @@ export function ShopFilterDrawer({
             <label id="filter-category-title" htmlFor="shop-category" className="mb-2 block font-medium">Category</label>
             <select id="shop-category" value={pending.category} onChange={(event) => setPending((current) => ({ ...current, category: event.target.value }))} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <option value="">All categories</option>
-              {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
+              {categories.map((category) => <option key={category.id} value={category.slug}>{decodeHtml(category.name)}</option>)}
             </select>
           </section>
 
@@ -201,14 +202,14 @@ export function ShopFilterDrawer({
             <label id="filter-brand-title" htmlFor="shop-brand" className="mb-2 block font-medium">Brand</label>
             <select id="shop-brand" value={pending.brand} onChange={(event) => setPending((current) => ({ ...current, brand: event.target.value }))} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <option value="">All brands</option>
-              {brands.map((brand) => <option key={brand.id} value={brand.slug}>{brand.name}</option>)}
+              {brands.map((brand) => <option key={brand.id} value={brand.slug}>{decodeHtml(brand.name)}</option>)}
             </select>
           </section>}
           {tags.length > 0 && <section className="border-b py-4" aria-labelledby="filter-tag-title">
             <label id="filter-tag-title" htmlFor="shop-tag" className="mb-2 block font-medium">Tag</label>
             <select id="shop-tag" value={pending.tag} onChange={(event) => setPending((current) => ({ ...current, tag: event.target.value }))} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <option value="">All tags</option>
-              {tags.map((tag) => <option key={tag.id} value={String(tag.id)}>{tag.name}</option>)}
+              {tags.map((tag) => <option key={tag.id} value={String(tag.id)}>{decodeHtml(tag.name)}</option>)}
             </select>
           </section>}
 
