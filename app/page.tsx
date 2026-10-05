@@ -15,10 +15,12 @@ import LogoCloud from "@/components/home/logo-cloud";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: t('brand.name'),
+  title: {
+    absolute: "Clay Brush Studio",
+  },
   description: t('brand.description'),
   openGraph: {
-    title: t('brand.name') + " — " + t('brand.tagline'),
+    title: "Clay Brush Studio",
     description: t('brand.description'),
     type: "website",
     url: "/",

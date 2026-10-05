@@ -6,7 +6,7 @@
 export const en: Record<string, string> = {
   "lang": "en",
 
-  "brand.name": "Next.js WooCommerce",
+  "brand.name": "Clay Brush Studio",
   "brand.tagline": "Fine 3D Prints",
   "brand.description": "Premium 3D prints crafted for the discerning connoisseur. Each piece tells a story.",
   "brand.copyright": "All rights reserved.",
@@ -172,7 +172,7 @@ export const en: Record<string, string> = {
   "home.brandStory.cta": "Explore the Collection",
 
   "checkout.pageTitle": "Checkout",
-  "checkout.pageDescription": "Complete your order securely at Next.js WooCommerce.",
+  "checkout.pageDescription": "Complete your order securely at Clay Brush Studio.",
   "checkout.loadingCart": "Loading your cart...",
   "checkout.emptyTitle": "Your Cart is Empty",
   "checkout.emptyHint": "Add some items to your cart before checking out.",
