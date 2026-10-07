@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { LEGAL_CONTACT } from "@/lib/legal/contact";
 import { t } from "@/lib/i18n";
+import { getWhatsAppChatUrl } from "@/lib/utils/whatsapp";
 
 // Social Media Icons
 function WhatsAppIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -60,12 +61,12 @@ interface SocialLinkItem {
 const SOCIAL_LINKS: readonly SocialLinkItem[] = [
   {
     name: "WhatsApp",
-    href: undefined, // Replace with production URL when ready
+    href: getWhatsAppChatUrl(),
     icon: WhatsAppIcon,
   },
   {
     name: "Instagram",
-    href: undefined, // Replace with production URL when ready
+    href: "https://www.instagram.com/claybrushstudio/?hl=en#",
     icon: InstagramIcon,
   },
   {
@@ -75,7 +76,7 @@ const SOCIAL_LINKS: readonly SocialLinkItem[] = [
   },
   {
     name: "YouTube",
-    href: undefined, // Replace with production URL when ready
+    href: "https://youtube.com/@claybrushstudio?si=SW1ni6usbz5YdGSR",
     icon: YouTubeIcon,
   },
 ];
