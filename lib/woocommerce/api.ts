@@ -58,6 +58,7 @@ async function cartFetch(
   body: unknown,
   cartToken?: string,
   nonce?: string,
+  extraHeaders?: Record<string, string>,
 ): Promise<Response> {
   let activeToken = cartToken;
   let activeNonce = nonce;
@@ -77,7 +78,10 @@ async function cartFetch(
 
   let res = await fetch(url, {
     method: "POST",
-    headers: cartHeaders(activeToken, activeNonce),
+    headers: {
+      ...cartHeaders(activeToken, activeNonce),
+      ...(extraHeaders ?? {}),
+    },
     body: JSON.stringify(body),
     cache: "no-store",
   });
@@ -105,7 +109,10 @@ async function cartFetch(
 
         res = await fetch(url, {
           method: "POST",
-          headers: cartHeaders(activeToken, activeNonce),
+          headers: {
+            ...cartHeaders(activeToken, activeNonce),
+            ...(extraHeaders ?? {}),
+          },
           body: JSON.stringify(body),
           cache: "no-store",
         });
@@ -1132,11 +1139,23 @@ export async function checkoutOnServer(
     "[checkoutOnServer] Request body:",
     JSON.stringify(data, null, 2),
   );
+
+  const authKey = process.env.MYAPP_CART_AUTH_KEY;
+  let extraHeaders: Record<string, string> | undefined;
+  if (!authKey) {
+    console.error(
+      "[checkoutOnServer] Missing environment variable MYAPP_CART_AUTH_KEY"
+    );
+  } else {
+    extraHeaders = { "X-MyApp-Checkout-Key": authKey };
+  }
+
   const res = await cartFetch(
     `${STORE_API_URL}/checkout`,
     data,
     cartToken,
     nonce,
+    extraHeaders,
   );
   if (!res.ok) {
     const body = await res.clone().text();

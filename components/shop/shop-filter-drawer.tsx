@@ -113,9 +113,12 @@ export function ShopFilterDrawer({
       return;
     }
 
+    // Suppress default price bounds when no prior price filter was active and the user hasn't changed them
+    const priceUnchanged = min === 0 && max === PRICE_MAX && minPrice === undefined && maxPrice === undefined;
+
     router.push(makeUrl(searchParams, {
-      min_price: min === undefined ? null : String(min),
-      max_price: max === undefined ? null : String(max),
+      min_price: min === undefined || priceUnchanged ? null : String(min),
+      max_price: max === undefined || priceUnchanged ? null : String(max),
       category: pending.category || null,
       brand: pending.brand || null,
       tag: pending.tag || null,

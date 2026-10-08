@@ -38,7 +38,12 @@ export const STORE_CONFIG = {
     instagram : "https://www.instagram.com/claybrushstudio/?hl=en#",
     whatsApp : "+919787120055",
     youtube: "https://youtube.com/@claybrushstudio?si=SW1ni6usbz5YdGSR"
-  }
+  },
+  featureFlags: {
+    // true  = guests can place orders without an account
+    // false = checkout asks the customer to log in or sign up first
+    allowGuest: false as boolean,
+  },
 } as const;
 
 export const APP_CONFIG = STORE_CONFIG;

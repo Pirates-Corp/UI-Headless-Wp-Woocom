@@ -6,6 +6,10 @@ import {
   assignOrderToCustomer,
 } from "@/lib/woocommerce/api";
 import { getSessionUser } from "@/lib/auth/session";
+import {
+  isGuestCheckoutAllowed,
+  GUEST_CHECKOUT_BLOCKED_MESSAGE,
+} from "@/lib/checkout/guest-checkout";
 import { createRazorpayOrder } from "@/lib/razorpay-server";
 import type { BillingAddress, ShippingAddress, WooCart } from "@/lib/woocommerce/types";
 
@@ -49,6 +53,10 @@ export async function createRazorpayCheckoutOrder(
   const sessionUser = await getSessionUser();
   const sessionCustomerId = sessionUser?.id ? Number(sessionUser.id) : 0;
   const customerId = Number.isFinite(sessionCustomerId) && sessionCustomerId > 0 ? sessionCustomerId : 0;
+
+  if (!sessionUser && !isGuestCheckoutAllowed()) {
+    return { error: GUEST_CHECKOUT_BLOCKED_MESSAGE };
+  }
 
   // 1. First attempt: Create WC order via REST API v3 (status: pending)
   try {

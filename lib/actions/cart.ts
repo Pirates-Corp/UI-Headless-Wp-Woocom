@@ -16,6 +16,7 @@ import {
   assignOrderToCustomer,
 } from "@/lib/woocommerce/api";
 import { getSessionUser } from "@/lib/auth/session";
+import { getGuestCheckoutError } from "@/lib/checkout/guest-checkout";
 import type {
   WooCart,
   BillingAddress,
@@ -140,6 +141,10 @@ export async function checkout(
   nonce?: string
 ): Promise<{ order: WooCheckoutOrder | null; cartToken: string | null; nonce: string | null; error?: string }> {
   try {
+    const guestError = await getGuestCheckoutError();
+    if (guestError) {
+      return { order: null, cartToken: null, nonce: null, error: guestError };
+    }
     const res = await checkoutOnServer(
       {
         billing_address: billingAddress as unknown as Record<string, string>,
