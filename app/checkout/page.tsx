@@ -28,6 +28,8 @@ import { useAddressUpdate } from "@/lib/hooks/use-address-update";
 import { trackBeginCheckout, trackAddShippingInfo, trackAddPaymentInfo } from "@/lib/utils/gtm-events";
 import { cartItemsToEcommerceItems } from "@/lib/utils/gtm-items";
 import { t } from "@/lib/i18n";
+import { STORE_CONFIG } from "@/store.config";
+import { LoginRequired } from "@/components/checkout/login-required";
 import type { SavedAddress, WooShippingPackage, WooShippingRate } from "@/lib/woocommerce/types";
 
 // Global type declaration for Razorpay checkout.js
@@ -452,6 +454,32 @@ function CheckoutContent() {
   );
 }
 
+function CheckoutGate() {
+  const searchParams = useSearchParams();
+  const { isAuthenticated, isInitialized } = useAuthStore();
+
+  if (STORE_CONFIG.featureFlags.allowGuest) {
+    return <CheckoutContent />;
+  }
+
+  if (!isInitialized) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-heading font-bold mb-8">{t("checkout.pageTitle")}</h1>
+        <p className="text-muted-foreground">{t("checkout.loadingCart")}</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    const qs = searchParams?.toString();
+    const returnUrl = qs ? `/checkout?${qs}` : "/checkout";
+    return <LoginRequired returnUrl={returnUrl} />;
+  }
+
+  return <CheckoutContent />;
+}
+
 export default function CheckoutPage() {
   return (
     <Suspense
@@ -462,7 +490,7 @@ export default function CheckoutPage() {
         </div>
       }
     >
-      <CheckoutContent />
+      <CheckoutGate />
     </Suspense>
   );
 }
