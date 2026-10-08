@@ -6,6 +6,7 @@ import { createStripeOrder } from "./stripe-checkout";
 import { createRazorpayCheckoutOrder } from "./razorpay-checkout";
 import { createAddressAction, saveBillingAction } from "./address";
 import { getEffectiveAddresses } from "@/lib/checkout/effective-addresses";
+import { getGuestCheckoutError } from "@/lib/checkout/guest-checkout";
 import type { BillingAddress, ShippingAddress, WooCart } from "@/lib/woocommerce/types";
 
 export type CheckoutActionState =
@@ -23,6 +24,13 @@ export async function checkoutAction(
   _prevState: CheckoutActionState,
   formData: FormData
 ): Promise<CheckoutActionState> {
+
+  
+  const guestError = await getGuestCheckoutError();
+  if (guestError) {
+    return { type: "error", message: guestError };
+  }
+
   // ── Parse raw form data ───────────────────────────────────────────────────
   let cart: WooCart;
   let paymentMethod: string;

@@ -28,6 +28,14 @@ This guide provides a complete, step-by-step action plan to clone this repositor
   - Set up Shipping Zones, methods, and rates in **WooCommerce → Settings → Shipping**.
   - Configure Tax rates in **WooCommerce → Settings → Tax** (if applicable).
 
+- **Install the following plugins**
+  - Razorpay | Version ^4.8.8 | By Team Razorpay 
+  - Shiprocket | Version ^2.0.9 | By Shiprocket 
+  - Simple JWT Login | Version ^4.0.1 | By Nicu Micle
+  - WooCommerce | Version ^11.2.0 | By Automattic 
+  - WP File Manager | Version ^8.0.6 | By mndpsingh287 
+  - [Optional] WooCommerce Stripe Gateway | Version ^11.0.0 | By Stripe 
+
 ### 2. Generate REST API Credentials
 1. Go to **WooCommerce → Settings → Advanced → REST API → Add Key**.
 2. **Description**: `Next.js Headless Storefront`.
@@ -59,6 +67,7 @@ This guide provides a complete, step-by-step action plan to clone this repositor
 - **Copy MU-Plugins**:
   - Copy the files from `wp-content/mu-plugins/` in this repository to the client's WordPress `wp-content/mu-plugins/` folder:
     - `custom-cart-endpoint.php` *(Handles persistent cart sync and cross-method OAuth linking)*
+    - `custom-checkout-guard.php` *(Restricts Store API checkout and classic checkout to authorized requests from Next.js; reuses `MYAPP_CART_AUTH_KEY`)*
     - `custom-address-book-endpoint.php` *(Multi-address book REST endpoints)*
     - `custom-shipping-endpoint.php` *(Shiprocket tracking webhook, automated order statuses wc-shipped & wc-rto, and admin refund alert column)*
     - `custom-returns-endpoint.php` *(Customer return requests, reverse logistics admin meta box, and automated receipt refund webhook)*
@@ -66,8 +75,11 @@ This guide provides a complete, step-by-step action plan to clone this repositor
     - `templates/emails/` *(MU-plugin email template overrides for new account notifications)*
 - **Set Configuration Constants in `wp-config.php`**:
   ```php
-  // Cart & Internal API authentication secret for Next.js REST communications
+  // Cart & Internal API authentication secret for Next.js REST communications (reused by custom-checkout-guard.php)
   define('MYAPP_CART_AUTH_KEY', 'your_secure_random_key_here');
+
+  // (Optional) Escape hatch to disable checkout guard lock and restore unrestricted checkout behaviour
+  // define('MYAPP_CHECKOUT_GUARD_DISABLED', true);
 
   // Public Next.js storefront URL for customer-facing email link rewriting
   define('MYAPP_STOREFRONT_URL', 'https://www.clientdomain.com');
@@ -179,6 +191,14 @@ Edit `app/globals.css` to update the CSS theme variables for Light and Dark mode
   - `app/layout.tsx` (Title, description, OpenGraph metadata)
   - `app/manifest.json` (PWA name, theme color, icons)
   - `app/robots.ts` & `app/sitemap.ts`
+
+### 4. Store Configuration & Feature Flags (`store.config.ts`)
+Configure store details and checkout behaviour in `store.config.ts`:
+- **`brand`**, **`address`**, **`phone`**, **`email`**, **`whatsapp`**: Store identity and contact info.
+- **`orders`**: Return window days, cancellation reasons, and refund reasons.
+- **`featureFlags.allowGuest`**:
+  - `true`: Guests can place orders without an account.
+  - `false` *(Default)*: Enforces customer authentication before checkout. Logged-out visitors see a prompt to log in or register (with an automatic drawer on mobile), and order creation is locked across all UI and server actions.
 
 ---
 
