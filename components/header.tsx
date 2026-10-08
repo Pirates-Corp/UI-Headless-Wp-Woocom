@@ -52,7 +52,8 @@ export function Header({ initialCategories = [] }: HeaderProps) {
   const pathname = usePathname();
 
   // Dynamic WooCommerce categories
-  const [categories, setCategories] = useState<WooCategory[]>(initialCategories);
+  const [categories, setCategories] =
+    useState<WooCategory[]>(initialCategories);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileStoreOpen, setIsMobileStoreOpen] = useState(false);
 
@@ -78,7 +79,10 @@ export function Header({ initialCategories = [] }: HeaderProps) {
   // Close desktop dropdown on outside click or escape
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     }
@@ -106,11 +110,14 @@ export function Header({ initialCategories = [] }: HeaderProps) {
     }, 180);
   };
 
-  const isStoreActive = pathname === "/shop" || pathname.startsWith("/shop?") || pathname.startsWith("/category/");
+  const isStoreActive =
+    pathname === "/shop" ||
+    pathname.startsWith("/shop?") ||
+    pathname.startsWith("/category/");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-brown/15 bg-brand-yellow">
-      <div className="container mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-x-3 gap-y-2.5 px-4 py-2.5 md:py-0 md:h-18 lg:h-20 lg:px-8">
+      <div className="container mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-x-3 gap-y-2.5 px-4 py-2.5 md:py-0 md:h-18 lg:h-18 lg:px-8">
         {/* Left: Logo + Desktop Nav */}
         <div className="flex items-center gap-4 sm:gap-6 lg:gap-10 order-1">
           <Logo />
@@ -125,7 +132,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 "relative py-1 font-medium transition-colors duration-200 tracking-wide",
                 pathname === "/"
                   ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200"
+                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
               )}
             >
               Home
@@ -145,7 +152,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                     "relative py-1 font-medium transition-colors duration-200 tracking-wide flex items-center gap-1",
                     isStoreActive
                       ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                      : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200"
+                      : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
                   )}
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
@@ -161,7 +168,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                   <ChevronDown
                     className={cn(
                       "w-3.5 h-3.5 transition-transform duration-200",
-                      isDropdownOpen && "rotate-180"
+                      isDropdownOpen && "rotate-180",
                     )}
                   />
                 </button>
@@ -185,7 +192,9 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                       <Layers className="w-4 h-4 text-brand-brown/70" />
                       <span>All 3D Prints</span>
                     </div>
-                    <span className="text-xs text-brand-brown/50">Browse all</span>
+                    <span className="text-xs text-brand-brown/50">
+                      Browse all
+                    </span>
                   </Link>
 
                   {/* Divider */}
@@ -240,7 +249,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 "relative py-1 font-medium transition-colors duration-200 tracking-wide",
                 pathname === "/about"
                   ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200"
+                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
               )}
             >
               About
@@ -253,7 +262,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 "relative py-1 font-medium transition-colors duration-200 tracking-wide",
                 pathname === "/contact"
                   ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200"
+                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
               )}
             >
               Contact
@@ -269,7 +278,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
         <div className="w-full md:w-auto md:flex-1 md:max-w-xs lg:max-w-sm xl:max-w-md order-3 md:order-2 md:mx-3 lg:mx-4">
           <SearchBar
             placeholder="Search.."
-            inputClassName="rounded-full bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none h-9.5 md:h-10 pl-9"
+            inputClassName=" bg-white border-brand-brown/15 text-brand-brown placeholder:text-brand-brown/50 focus-visible:ring-brand-brown/30 shadow-none h-9.5 md:h-10 pl-9"
           />
         </div>
 
@@ -319,7 +328,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                     "flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors",
                     pathname === "/"
                       ? "bg-brand-brown/10 text-brand-brown font-semibold"
-                      : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown"
+                      : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown",
                   )}
                 >
                   Home
@@ -332,7 +341,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                       "flex items-center justify-between rounded-md px-3 py-3 text-base font-medium transition-colors",
                       isStoreActive
                         ? "bg-brand-brown/10 text-brand-brown font-semibold"
-                        : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown"
+                        : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown",
                     )}
                   >
                     <Link
@@ -354,7 +363,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                       <ChevronDown
                         className={cn(
                           "h-4 w-4 transition-transform duration-200 text-brand-brown/70",
-                          isMobileStoreOpen && "rotate-180"
+                          isMobileStoreOpen && "rotate-180",
                         )}
                       />
                     </button>
@@ -388,7 +397,9 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                                 className="w-5 h-5 rounded-full object-cover shrink-0 bg-[#f5ebdb]"
                               />
                             )}
-                            <span className="truncate">{decodeHtml(cat.name)}</span>
+                            <span className="truncate">
+                              {decodeHtml(cat.name)}
+                            </span>
                           </div>
                           {cat.count > 0 && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-brown/10 text-brand-brown/70 shrink-0 ml-2">
@@ -409,7 +420,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                     "flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors",
                     pathname === "/about"
                       ? "bg-brand-brown/10 text-brand-brown font-semibold"
-                      : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown"
+                      : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown",
                   )}
                 >
                   About
@@ -423,7 +434,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                     "flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors",
                     pathname === "/contact"
                       ? "bg-brand-brown/10 text-brand-brown font-semibold"
-                      : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown"
+                      : "text-brand-brown/80 hover:bg-brand-brown/10 hover:text-brand-brown",
                   )}
                 >
                   Contact

@@ -23,15 +23,15 @@ export async function CategoriesSection() {
         </div>
 
         {/* Dynamic Category Cards using WooCommerce Images */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:gap-8 max-w-4xl mx-auto">
           {categories.map((cat) => (
             <Link
               key={cat.id}
               href={`/shop?category=${encodeURIComponent(cat.slug)}`}
-              className="group bg-white rounded-3xl p-6 sm:p-8 flex items-center gap-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 md:p-8 flex flex-col sm:flex-row items-center text-center sm:text-left gap-3 sm:gap-6 shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
             >
               {/* Circular Badge with WordPress WooCommerce Category Image */}
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#fdf3d6] p-1.5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300 shadow-inner">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-[#fdf3d6] p-1.5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300 shadow-inner">
                 <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#f5ebdb] relative">
                   {cat.image?.src ? (
                     <Image
@@ -42,7 +42,7 @@ export async function CategoriesSection() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="font-serif font-bold text-xl text-[#4c3b28]">
+                    <span className="font-serif font-bold text-lg sm:text-xl text-[#4c3b28]">
                       {cat.name.slice(0, 1)}
                     </span>
                   )}
@@ -51,7 +51,7 @@ export async function CategoriesSection() {
 
               {/* Category Title */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-2xl sm:text-3xl font-serif font-medium text-neutral-900 tracking-wide group-hover:text-brand-brown transition-colors">
+                <h3 className="text-base sm:text-2xl md:text-3xl font-serif font-medium text-neutral-900 tracking-wide group-hover:text-brand-brown transition-colors">
                   {decodeHtml(cat.name)}
                 </h3>
               </div>

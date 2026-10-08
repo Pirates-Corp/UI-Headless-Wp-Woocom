@@ -4,7 +4,7 @@ export const STORE_CONFIG = {
     "3/420 Navaladi Patty Road",
     "Pavithiram (PO)",
     "Namakkal(DT)",
-    "Tamil Nadu, India",
+    "Tamil Nadu, India - 637021",
   ],
   phone: "+91 9787120055",
   email: "info@claybrushstudio.com",
@@ -28,16 +28,12 @@ export const STORE_CONFIG = {
       "changed_mind",
       "other",
     ] as const,
-    fullRefundReturnReasons: [
-      "damaged",
-      "defective",
-      "wrong_item",
-    ] as const,
+    fullRefundReturnReasons: ["damaged", "defective", "wrong_item"] as const,
   },
-  social : {
-    instagram : "https://www.instagram.com/claybrushstudio/?hl=en#",
-    whatsApp : "+919787120055",
-    youtube: "https://youtube.com/@claybrushstudio?si=SW1ni6usbz5YdGSR"
+  social: {
+    instagram: "https://www.instagram.com/claybrushstudio/?hl=en#",
+    whatsApp: "+919787120055",
+    youtube: "https://youtube.com/@claybrushstudio?si=SW1ni6usbz5YdGSR",
   },
   featureFlags: {
     // true  = guests can place orders without an account
