@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "Frontend_Headless_Woocommerce_WP_POC_Prod",
+      "name": "Clay_Brush_Ecomm_Website_Prod",
       "script": "pnpm",
       "interpreter": "none",
       "args": "start:mainbranch",
