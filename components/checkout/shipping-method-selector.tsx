@@ -18,6 +18,10 @@ export function ShippingMethodSelector({
   isDisabled,
   onSelect,
 }: ShippingMethodSelectorProps) {
+  const hasRates = shippingRates.some(
+    (pkg) => pkg.shipping_rates && pkg.shipping_rates.length > 0
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -27,55 +31,64 @@ export function ShippingMethodSelector({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {shippingRates.map((pkg) => (
-          <div key={pkg.package_id} className="space-y-2">
-            {shippingRates.length > 1 && (
-              <p className="text-sm font-medium text-muted-foreground">{pkg.name}</p>
-            )}
-            {pkg.shipping_rates.map((rate) => (
-              <label
-                key={rate.rate_id}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-md border p-3 cursor-pointer transition-colors",
-                  rate.selected
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name={`shipping_package_${pkg.package_id}`}
-                    value={rate.rate_id}
-                    checked={rate.selected}
-                    onChange={() => onSelect(pkg.package_id, rate.rate_id)}
-                    className="h-4 w-4 accent-primary"
-                    disabled={isDisabled}
-                  />
-                  <div>
-                    <span className="text-sm font-medium">{rate.name}</span>
-                    {rate.description && (
-                      <p className="text-xs text-muted-foreground">{rate.description}</p>
-                    )}
-                    {rate.delivery_time && (
-                      <p className="text-xs text-muted-foreground">{rate.delivery_time}</p>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm font-medium shrink-0">
-                  {parseInt(rate.price) === 0
-                    ? t('checkout.freeShipping')
-                    : formatPrice(
-                        rate.price,
-                        rate.currency_minor_unit,
-                        rate.currency_prefix,
-                        rate.currency_suffix
-                      )}
-                </span>
-              </label>
-            ))}
+        {!hasRates ? (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm text-amber-800 dark:text-amber-300">
+            <p className="font-medium">No shipping options available for this address</p>
+            <p className="mt-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+              Please configure a shipping method in your WordPress Admin (<strong>WooCommerce &gt; Settings &gt; Shipping &gt; Shipping Zones</strong>) to enable checkout for this location.
+            </p>
           </div>
-        ))}
+        ) : (
+          shippingRates.map((pkg) => (
+            <div key={pkg.package_id} className="space-y-2">
+              {shippingRates.length > 1 && (
+                <p className="text-sm font-medium text-muted-foreground">{pkg.name}</p>
+              )}
+              {pkg.shipping_rates.map((rate) => (
+                <label
+                  key={rate.rate_id}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                    rate.selected
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name={`shipping_package_${pkg.package_id}`}
+                      value={rate.rate_id}
+                      checked={rate.selected}
+                      onChange={() => onSelect(pkg.package_id, rate.rate_id)}
+                      className="h-4 w-4 accent-primary"
+                      disabled={isDisabled}
+                    />
+                    <div>
+                      <span className="text-sm font-medium">{rate.name}</span>
+                      {rate.description && (
+                        <p className="text-xs text-muted-foreground">{rate.description}</p>
+                      )}
+                      {rate.delivery_time && (
+                        <p className="text-xs text-muted-foreground">{rate.delivery_time}</p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium shrink-0">
+                    {parseInt(rate.price) === 0
+                      ? t('checkout.freeShipping')
+                      : formatPrice(
+                          rate.price,
+                          rate.currency_minor_unit,
+                          rate.currency_prefix,
+                          rate.currency_suffix
+                        )}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ))
+        )}
       </CardContent>
     </Card>
   );

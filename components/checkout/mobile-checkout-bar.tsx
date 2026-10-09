@@ -13,6 +13,7 @@ interface MobileCheckoutBarProps {
   isSelectingShipping: boolean;
   isStripeMethod: boolean;
   isRazorpayMethod: boolean;
+  hasAvailableShipping?: boolean;
 }
 
 export function MobileCheckoutBar({
@@ -22,14 +23,18 @@ export function MobileCheckoutBar({
   isSelectingShipping,
   isStripeMethod,
   isRazorpayMethod,
+  hasAvailableShipping = true,
 }: MobileCheckoutBarProps) {
-  const isDisabled = isPending || isUpdatingAddress || isSelectingShipping;
+  const isShippingDisabled = !hasAvailableShipping && cart.needs_shipping;
+  const isDisabled = isPending || isUpdatingAddress || isSelectingShipping || isShippingDisabled;
   const isFree = !cart.needs_payment || parseInt(cart.totals?.total_price || "0") <= 0;
 
   const buttonText = isPending
     ? t("checkout.processing")
     : isUpdatingAddress
     ? t("checkout.recalculating")
+    : isShippingDisabled
+    ? t("checkout.noShippingAvailable")
     : isFree
     ? t("checkout.freeOrder")
     : isStripeMethod

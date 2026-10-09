@@ -207,6 +207,7 @@ export const en: Record<string, string> = {
   "checkout.recalculating": "Recalculating...",
   "checkout.freeShipping": "Free",
   "checkout.failedShipping": "Failed to update shipping method.",
+  "checkout.noShippingAvailable": "No Shipping Method Available",
 
   "checkout.payment.bacs": "Direct Bank Transfer",
   "checkout.payment.cheque": "Check Payment",

@@ -17,6 +17,7 @@ interface CheckoutOrderSummaryProps {
   isSelectingShipping: boolean;
   isStripeMethod: boolean;
   isRazorpayMethod: boolean;
+  hasAvailableShipping?: boolean;
 }
 
 export function CheckoutOrderSummary({
@@ -26,7 +27,11 @@ export function CheckoutOrderSummary({
   isSelectingShipping,
   isStripeMethod,
   isRazorpayMethod,
+  hasAvailableShipping = true,
 }: CheckoutOrderSummaryProps) {
+  const isShippingDisabled = !hasAvailableShipping && cart.needs_shipping;
+  const isButtonDisabled = isPending || isUpdatingAddress || isSelectingShipping || isShippingDisabled;
+
   return (
     <Card className="border-border/80 shadow-sm">
       <CardHeader>
@@ -98,12 +103,14 @@ export function CheckoutOrderSummary({
             type="submit"
             className="w-full"
             size="lg"
-            disabled={isPending || isUpdatingAddress || isSelectingShipping}
+            disabled={isButtonDisabled}
           >
             {isPending
               ? t('checkout.processing')
               : isUpdatingAddress
               ? t('checkout.recalculating')
+              : isShippingDisabled
+              ? t('checkout.noShippingAvailable')
               : !cart.needs_payment || parseInt(cart.totals?.total_price || "0") <= 0
               ? t('checkout.freeOrder')
               : isStripeMethod

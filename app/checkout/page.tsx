@@ -89,6 +89,16 @@ function CheckoutContent() {
   const [isSelectingShipping, startShippingTransition] = useTransition();
   const { isUpdatingAddress } = useAddressUpdate(activeCartToken ?? null, isBuyNow);
 
+  const hasAvailableShipping =
+    !activeCart?.needs_shipping ||
+    Boolean(
+      activeCart?.shipping_rates &&
+        activeCart.shipping_rates.length > 0 &&
+        activeCart.shipping_rates.some(
+          (pkg) => pkg.shipping_rates && pkg.shipping_rates.length > 0
+        )
+    );
+
   // Saved address state for logged-in users
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
@@ -299,7 +309,7 @@ function CheckoutContent() {
     }
   }, [activeCart?.payment_methods, selectedPaymentMethod, setSelectedPaymentMethod]);
 
-  const handleShippingRateChange = (packageId: number, rateId: string) => {
+  const handleShippingRateChange = useCallback((packageId: number, rateId: string) => {
     startShippingTransition(async () => {
       const result = await selectShippingRate(packageId, rateId, activeCartToken, activeNonce);
       if (result.error) {
@@ -328,7 +338,24 @@ function CheckoutContent() {
         trackAddShippingInfo(cartItemsToEcommerceItems(c.items), currency, value, selectedRate?.name ?? rateId);
       }
     });
-  };
+  }, [activeCartToken, activeNonce, isBuyNow]);
+
+  // Auto-select first shipping rate when rates are available and none is selected
+  const shippingAutoSelected = useRef(false);
+  useEffect(() => {
+    if (activeCart?.needs_shipping && activeCart?.shipping_rates?.length && !shippingAutoSelected.current) {
+      for (const pkg of activeCart.shipping_rates) {
+        if (!pkg.shipping_rates || pkg.shipping_rates.length === 0) continue;
+        const hasSelected = pkg.shipping_rates.some((r) => r.selected);
+        if (!hasSelected) {
+          shippingAutoSelected.current = true;
+          const firstRate = pkg.shipping_rates[0];
+          handleShippingRateChange(pkg.package_id, firstRate.rate_id);
+          break;
+        }
+      }
+    }
+  }, [activeCart?.needs_shipping, activeCart?.shipping_rates, handleShippingRateChange]);
 
   if (isLoading) {
     return (
@@ -397,9 +424,9 @@ function CheckoutContent() {
             <BillingAddressForm />
 
             {/* 4. Shipping Method */}
-            {activeCart.needs_shipping && activeCart.shipping_rates?.length > 0 && (
+            {activeCart.needs_shipping && (
               <ShippingMethodSelector
-                shippingRates={activeCart.shipping_rates}
+                shippingRates={activeCart.shipping_rates || []}
                 isDisabled={isSelectingShipping || isUpdatingAddress}
                 onSelect={handleShippingRateChange}
               />
@@ -436,6 +463,7 @@ function CheckoutContent() {
               isSelectingShipping={isSelectingShipping}
               isStripeMethod={isStripeMethod}
               isRazorpayMethod={isRazorpayMethod}
+              hasAvailableShipping={hasAvailableShipping}
             />
           </aside>
         </div>
@@ -448,6 +476,7 @@ function CheckoutContent() {
           isSelectingShipping={isSelectingShipping}
           isStripeMethod={isStripeMethod}
           isRazorpayMethod={isRazorpayMethod}
+          hasAvailableShipping={hasAvailableShipping}
         />
       </form>
     </div>
