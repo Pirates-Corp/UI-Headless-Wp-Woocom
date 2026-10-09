@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import type { WooImage } from "@/lib/woocommerce/types";
 import { cn } from "@/lib/utils";
@@ -18,35 +18,53 @@ export function ProductGallery({
   productName,
   activeImage,
 }: ProductGalleryProps) {
-  const seenImageIds = new Set<number>();
-  const images = (rawImages || [])
-    .filter((img) => Boolean(img?.src && img.src.trim() !== ""))
-    .filter((img) => {
-      if (seenImageIds.has(img.id)) return false;
-      seenImageIds.add(img.id);
-      return true;
-    });
+  const images = useMemo(() => {
+    const seenIds = new Set<number>();
+    const seenSrcs = new Set<string>();
+    return (rawImages || [])
+      .filter((img) => Boolean(img?.src && img.src.trim() !== ""))
+      .filter((img) => {
+        if (img.id && img.id > 0) {
+          if (seenIds.has(img.id)) return false;
+          seenIds.add(img.id);
+        }
+        if (img.src) {
+          if (seenSrcs.has(img.src)) return false;
+          seenSrcs.add(img.src);
+        }
+        return true;
+      });
+  }, [rawImages]);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const prevActiveImageRef = useRef<string | null | undefined>(undefined);
 
-  // Sync selected index whenever active variation image or image list changes
+  // Sync selected index only when active variation image actually changes from outside
   useEffect(() => {
-    if (activeImage?.src && images.length > 0) {
-      const idx = images.findIndex(
-        (img) =>
-          (img.id && activeImage.id && img.id === activeImage.id) ||
-          img.src === activeImage.src,
-      );
-      if (idx !== -1) {
-        setSelectedIndex(idx);
-      } else {
-        setSelectedIndex(0);
+    const currentActiveSrc = activeImage?.src || null;
+    if (prevActiveImageRef.current !== currentActiveSrc) {
+      prevActiveImageRef.current = currentActiveSrc;
+      if (currentActiveSrc && images.length > 0) {
+        const idx = images.findIndex(
+          (img) =>
+            (img.id && activeImage?.id && img.id === activeImage.id) ||
+            img.src === currentActiveSrc,
+        );
+        if (idx !== -1) {
+          setSelectedIndex(idx);
+        }
       }
-    } else {
-      setSelectedIndex(0);
     }
   }, [activeImage, images]);
+
+  // Keep selected index within bounds if images list changes
+  useEffect(() => {
+    if (selectedIndex >= images.length) {
+      setSelectedIndex(0);
+    }
+  }, [images.length, selectedIndex]);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
@@ -104,7 +122,8 @@ export function ProductGallery({
           <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Product images">
             {images.map((image, index) => (
               <button
-                key={image.id}
+                key={image.id || `${image.src}-${index}`}
+                type="button"
                 onClick={() => setSelectedIndex(index)}
                 className={cn(
                   "relative h-20 w-16 shrink-0 overflow-hidden rounded-md border-2 transition-all duration-200",

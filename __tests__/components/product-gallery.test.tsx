@@ -33,4 +33,41 @@ describe("ProductGallery", () => {
       screen.queryByRole("button", { name: "View image 3 of 3" }),
     ).not.toBeInTheDocument();
   });
+
+  it("switches main image when a thumbnail is clicked and keeps the clicked image selected", () => {
+    const images = [makeImage(1), makeImage(2), makeImage(3)];
+    const { rerender } = render(
+      <ProductGallery images={images} productName="Test product" />
+    );
+
+    const thumbnail2 = screen.getByRole("button", { name: "View image 2 of 3" });
+    expect(thumbnail2).toHaveAttribute("aria-pressed", "false");
+
+    thumbnail2.click();
+
+    expect(thumbnail2).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "View image 1 of 3" })).toHaveAttribute("aria-pressed", "false");
+
+    // Re-render with same props (e.g. parent component re-renders)
+    rerender(<ProductGallery images={images} productName="Test product" />);
+    expect(thumbnail2).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("switches to activeImage when activeImage changes", () => {
+    const images = [makeImage(1), makeImage(2), makeImage(3)];
+    const { rerender } = render(
+      <ProductGallery images={images} productName="Test product" activeImage={images[0]} />
+    );
+
+    const thumbnail1 = screen.getByRole("button", { name: "View image 1 of 3" });
+    const thumbnail3 = screen.getByRole("button", { name: "View image 3 of 3" });
+    expect(thumbnail1).toHaveAttribute("aria-pressed", "true");
+
+    // Parent changes activeImage to images[2]
+    rerender(
+      <ProductGallery images={images} productName="Test product" activeImage={images[2]} />
+    );
+    expect(thumbnail3).toHaveAttribute("aria-pressed", "true");
+    expect(thumbnail1).toHaveAttribute("aria-pressed", "false");
+  });
 });
