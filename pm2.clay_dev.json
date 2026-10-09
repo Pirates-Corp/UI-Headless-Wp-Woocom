@@ -4,7 +4,7 @@
       "name": "Clay_Brush_Ecomm_Website_Dev",
       "script": "pnpm",
       "interpreter": "none",
-      "args": "start:mainbranch",
+      "args": "start:clay_dev_branch",
       "autorestart": false,
       "max_restarts": "2",
       "restart_delay": "5000"
