@@ -88,7 +88,6 @@ const SHOP_LINKS = [
   { href: "/shop?on_sale=true", label: t("footer.links.sale") },
   { href: "/shop?orderby=popularity", label: t("footer.links.bestSellers") },
   { href: "/cart", label: t("footer.links.cart") },
-  { href: "/checkout", label: t("footer.links.checkout") },
 ] as const;
 
 // Figma-aligned Legal links pointing to canonical /legal anchors
@@ -102,7 +101,7 @@ const LEGAL_LINKS = [
 const SUPPORT_LINKS = [
   { href: "/legal#shipping", label: "Shipping Policy" },
   { href: "/legal#returns", label: "Returns & Refunds" },
-  { href: "/#faq", label: "FAQ" },
+  { href: "/contact#faq", label: "FAQ" },
   { href: "/account", label: "My Account" },
   { href: "/account/orders", label: "My Orders" },
 ] as const;
