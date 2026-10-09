@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { LEGAL_CONTACT } from "@/lib/legal/contact";
 import { t } from "@/lib/i18n";
@@ -113,9 +114,19 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-12 lg:gap-8">
           {/* Brand Presentation */}
           <div className="sm:col-span-2 md:col-span-3 lg:col-span-3">
-            <h3 className="font-heading text-xl md:text-2xl font-normal tracking-[0.1em] uppercase text-brand-yellow">
-              CLAY BRUSH STUDIO
-            </h3>
+            <Link
+              href="/"
+              className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-yellow rounded-sm"
+              aria-label="Clay Brush Studio Home"
+            >
+              <Image
+                src="/assets/brand/Footerclaybrush-logo.svg"
+                alt="Clay Brush Studio"
+                width={243}
+                height={168}
+                className="h-16 sm:h-20 w-auto object-contain select-none"
+              />
+            </Link>
             <p className="mt-4 text-sm leading-relaxed text-brand-yellow/80 max-w-sm">
               Crafting premium 3D printable digital art and conversion services for
               discerning collectors and creators.
