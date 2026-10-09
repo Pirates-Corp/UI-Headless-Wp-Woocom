@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ProductGallery } from "@/components/product-gallery";
 import type { WooImage } from "@/lib/woocommerce/types";
 
@@ -43,7 +43,7 @@ describe("ProductGallery", () => {
     const thumbnail2 = screen.getByRole("button", { name: "View image 2 of 3" });
     expect(thumbnail2).toHaveAttribute("aria-pressed", "false");
 
-    thumbnail2.click();
+    fireEvent.click(thumbnail2);
 
     expect(thumbnail2).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "View image 1 of 3" })).toHaveAttribute("aria-pressed", "false");
@@ -69,5 +69,11 @@ describe("ProductGallery", () => {
     );
     expect(thumbnail3).toHaveAttribute("aria-pressed", "true");
     expect(thumbnail1).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("renders click to see full view button", () => {
+    const images = [makeImage(1)];
+    render(<ProductGallery images={images} productName="Test product" />);
+    expect(screen.getByText("Click to see full view")).toBeInTheDocument();
   });
 });
