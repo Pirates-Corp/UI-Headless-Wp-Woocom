@@ -79,7 +79,7 @@ export function ProductGallery({
   // Auto-scroll active thumbnail into view
   useEffect(() => {
     const el = thumbnailRefs.current[safeIndex];
-    if (el) {
+    if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
