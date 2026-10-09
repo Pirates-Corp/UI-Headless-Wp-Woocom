@@ -4,14 +4,31 @@ import { createRazorpayCheckoutOrder } from "@/lib/actions/razorpay-checkout";
 import { createStripeOrder } from "@/lib/actions/stripe-checkout";
 import { getCustomerOrdersAction } from "@/lib/actions/account";
 import { getSessionUser } from "@/lib/auth/session";
-import {
-  createWooOrderOnServer,
-  checkoutOnServer,
-} from "@/lib/woocommerce/api";
 import { createRazorpayOrder } from "@/lib/razorpay-server";
 import { createStripeCheckoutSession } from "@/lib/stripe-server";
 
 // Mock dependencies
+jest.mock("@/store.config", () => {
+  const actual = jest.requireActual("@/store.config");
+  return {
+    ...actual,
+    STORE_CONFIG: {
+      ...actual.STORE_CONFIG,
+      featureFlags: {
+        ...actual.STORE_CONFIG?.featureFlags,
+        allowGuest: true,
+      },
+    },
+    APP_CONFIG: {
+      ...actual.APP_CONFIG,
+      featureFlags: {
+        ...actual.APP_CONFIG?.featureFlags,
+        allowGuest: true,
+      },
+    },
+  };
+});
+
 jest.mock("@/lib/auth/session", () => ({
   getSessionUser: jest.fn(),
 }));

@@ -34,6 +34,11 @@ export const STORE_CONFIG = {
       "wrong_item",
     ] as const,
   },
+  featureFlags: {
+    // true  = guests can place orders without an account
+    // false = checkout asks the customer to log in or sign up first
+    allowGuest: false as boolean,
+  },
 } as const;
 
 export const APP_CONFIG = STORE_CONFIG;
