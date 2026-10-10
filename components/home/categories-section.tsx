@@ -23,7 +23,13 @@ export async function CategoriesSection() {
         </div>
 
         {/* Dynamic Category Cards using WooCommerce Images */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:gap-8 max-w-4xl mx-auto">
+        <div
+          className={`grid gap-3 sm:gap-6 md:gap-8 mx-auto ${
+            categories.length === 2
+              ? "grid-cols-2 max-w-4xl"
+              : "grid-cols-2 sm:grid-cols-3 max-w-5xl"
+          }`}
+        >
           {categories.map((cat) => (
             <Link
               key={cat.id}

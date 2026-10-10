@@ -9,19 +9,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let product: { slug?: string } = {};
   try {
-    product = await req.json();
+    await req.json().catch(() => null);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    // Ignore empty/malformed body
   }
 
-  if (product?.slug) {
-    revalidatePath(`/product/${product.slug}`);
-  }
+  // Purge categories cache tag and layout/pages displaying categories
   revalidateTag("categories", "max");
-  revalidatePath("/shop");
   revalidatePath("/", "layout");
+  revalidatePath("/shop");
   revalidatePath("/");
 
   return NextResponse.json({ revalidated: true });
