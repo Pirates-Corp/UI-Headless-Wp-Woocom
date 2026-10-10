@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --animate-glaze: glaze 0.6s linear infinite;
+  --animate-glaze: glaze 1.5s linear infinite;
   @keyframes glaze {
     from {
       translate: -150% 0;
