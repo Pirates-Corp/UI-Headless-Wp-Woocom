@@ -47,6 +47,12 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      {/* Tamil brand blessing bar */}
+      <div className="w-full bg-brand-brown px-4 py-1 text-center text-brand-yellow">
+        <span className="text-[8px] font-medium tracking-wide sm:text-[8px] md:text-[8px]">
+          ஶ்ரீ பட்டவன் துணை
+        </span>
+      </div>
       <div className="container mx-auto flex h-16 items-center justify-between gap-6 px-4 lg:px-8">
         {/* Left: Logo + Nav (desktop) */}
         <div className="flex items-center gap-4">
