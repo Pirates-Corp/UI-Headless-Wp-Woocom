@@ -323,7 +323,10 @@ export function OrdersPageContent() {
       <div className="mb-6">
         <Link
           href="/account"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "default" }),
+            "border-brand-brown/30 text-brand-brown hover:bg-brand-yellow/30 hover:border-brand-brown font-medium transition-colors gap-1.5"
+          )}
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to My Account</span>
@@ -390,8 +393,8 @@ export function OrdersPageContent() {
           <Link
             href="/shop"
             className={cn(
-              buttonVariants({ variant: "default" }),
-              "mt-4 gap-2"
+              buttonVariants({ variant: "default", size: "lg" }),
+              "bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium mt-4 gap-2 px-6"
             )}
           >
             <ShoppingBag className="h-4 w-4" />

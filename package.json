@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 3091",
+    "start:clay_dev_branch": "next start -p 4121",
     "start:clay_prod_branch": "cross-env NODE_ENV=production next start -p 3121",
     "lint": "eslint",
     "analyze": "ANALYZE=true next build",
