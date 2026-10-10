@@ -48,8 +48,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       {/* Tamil brand blessing bar */}
-      <div className="w-full bg-brand-brown px-4 py-1 text-center text-brand-yellow">
-        <span className="text-[8px] font-medium tracking-wide sm:text-[8px] md:text-[8px]">
+      <div className="w-full bg-brand-brown px-4 py-0.5 text-center text-brand-yellow">
+        <span className="block text-[8px] font-medium tracking-wide leading-none sm:text-[8px] md:text-[8px]">
           ஶ்ரீ பட்டவன் துணை
         </span>
       </div>
