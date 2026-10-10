@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProduct, getVariationData, getProductReviewsFromServer } from "@/lib/woocommerce/api";
+import { getProduct, getVariationData } from "@/lib/woocommerce/api";
 import { stripHtml } from "@/lib/utils/format";
 import { ProductPageLayout } from "@/components/product/product-page-layout";
 
@@ -51,10 +51,8 @@ export default async function ProductVariationPage({ params }: Props) {
   }
 
   const matchedVar = product.variations.find((v) => v.id === vid);
-  const [variationData, reviews] = await Promise.all([
-    matchedVar?.prices ? Promise.resolve(null) : getVariationData(product.id, vid),
-    getProductReviewsFromServer({ productId: product.id }),
-  ]);
+  // Reviews are fetched inside <ProductReviewsSection> (streamed), not here.
+  const variationData = matchedVar?.prices ? null : await getVariationData(product.id, vid);
 
   const prices = matchedVar?.prices || variationData?.prices || undefined;
   const inStock = matchedVar?.is_in_stock ?? variationData?.is_in_stock ?? product.is_in_stock;
@@ -67,7 +65,6 @@ export default async function ProductVariationPage({ params }: Props) {
       initialVariationPrices={prices}
       initialVariationInStock={inStock}
       initialVariationImage={image}
-      reviews={reviews}
     />
   );
 }

@@ -3,7 +3,10 @@ import { ProductMainSection } from "@/components/product/product-main-section";
 import { Separator } from "@/components/ui/separator";
 import { ProductBreadcrumb } from "@/components/product/product-breadcrumb";
 import { ProductSpecs } from "@/components/product/product-specs";
-import { ProductReviews } from "@/components/product/product-reviews";
+import {
+  ProductReviewsSection,
+  ProductReviewsSkeleton,
+} from "@/components/product/product-reviews-section";
 import { RelatedProducts } from "@/components/product/related-products";
 import { stripHtml } from "@/lib/utils/format";
 import { productToEcommerceItem } from "@/lib/utils/gtm-items";
@@ -11,7 +14,6 @@ import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { FireGTMEvent } from "@/components/analytics/fire-gtm-event";
 import type {
   WooProduct,
-  WooProductReview,
   WooProductPrices,
   WooImage,
 } from "@/lib/woocommerce/types";
@@ -23,7 +25,6 @@ export interface ProductPageData {
   initialVariationPrices?: WooProductPrices;
   initialVariationInStock?: boolean;
   initialVariationImage?: WooImage | null;
-  reviews?: WooProductReview[];
 }
 
 /** Builds the JSON-LD Product schema for a product page. */
@@ -69,7 +70,6 @@ export function ProductPageLayout({
   initialVariationPrices,
   initialVariationInStock,
   initialVariationImage,
-  reviews = [],
 }: ProductPageData) {
   const displayPrices = initialVariationPrices ?? product.prices;
   const isInStock = initialVariationInStock ?? product.is_in_stock;
@@ -110,7 +110,6 @@ export function ProductPageLayout({
           initialVariationPrices={initialVariationPrices}
           initialVariationInStock={initialVariationInStock}
           initialVariationImage={initialVariationImage}
-          reviews={reviews}
         />
 
         {product.description && (
@@ -126,14 +125,15 @@ export function ProductPageLayout({
 
         <ProductSpecs attributes={product.attributes} />
 
-        {/* Customer Reviews Section */}
-        <ProductReviews
-          productId={product.id}
-          productName={product.name}
-          averageRating={product.average_rating}
-          reviewCount={product.review_count}
-          reviews={reviews}
-        />
+        {/* Customer Reviews — streamed so they never block the product itself */}
+        <Suspense fallback={<ProductReviewsSkeleton />}>
+          <ProductReviewsSection
+            productId={product.id}
+            productName={product.name}
+            averageRating={product.average_rating}
+            reviewCount={product.review_count}
+          />
+        </Suspense>
 
         {product.categories[0] && (
           <Suspense fallback={null}>
