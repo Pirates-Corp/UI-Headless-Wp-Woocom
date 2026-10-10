@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "Clay_Brush_Ecomm_Website_Dev",
-      "script": "npm",
+      "script": "pnpm",
       "interpreter": "none",
       "args": "start:clay_dev_branch",
       "autorestart": false,
