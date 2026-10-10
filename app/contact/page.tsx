@@ -418,7 +418,7 @@ export default function ContactPage() {
       </section>
 
       {/* 5. Bottom Reassurance Call to Action */}
-      <section className="border-t border-brand-brown/15 bg-brand-yellow/60">
+      <section className="border-t border-brand-brown/15 bg-brand-yellow">
         <div className="container mx-auto px-4 py-12 text-center md:px-6 md:py-16">
           <h2 className="font-heading text-2xl font-bold text-brand-brown md:text-3xl">
             Still Have Questions?
