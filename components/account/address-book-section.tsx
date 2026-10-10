@@ -263,7 +263,7 @@ export function AddressBookSection() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="font-heading text-lg font-semibold flex items-center gap-2 text-foreground">
-              <MapPin className="h-5 w-5 text-primary" />
+              <MapPin className="h-5 w-5 text-brand-brown" />
               <span>{t("account.addresses.title")}</span>
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
@@ -276,7 +276,7 @@ export function AddressBookSection() {
             size="sm"
             onClick={openAddModal}
             disabled={isLimitReached}
-            className="text-xs font-medium h-9 shrink-0 gap-1.5"
+            className="text-xs font-medium h-9 shrink-0 gap-1.5 shadow-none bg-brand-brown text-brand-yellow hover:bg-brand-brown/90"
           >
             <Plus className="h-4 w-4" />
             <span>{t("account.addresses.addNew")}</span>
@@ -302,7 +302,7 @@ export function AddressBookSection() {
               variant="outline"
               size="sm"
               onClick={openAddModal}
-              className="mt-4 text-xs"
+              className="mt-4 text-xs border-brand-brown/30 text-brand-brown hover:bg-brand-yellow/30 hover:border-brand-brown"
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
               Add First Address
@@ -327,7 +327,7 @@ export function AddressBookSection() {
                   key={addr.id}
                   className={`rounded-xl border p-5 flex flex-col justify-between transition-all ${
                     addr.is_default
-                      ? "border-primary/50 bg-primary/5 shadow-xs"
+                      ? "border-brand-brown/40 bg-brand-yellow/15 shadow-xs"
                       : "border-border/70 bg-card hover:border-border"
                   }`}
                 >
@@ -340,7 +340,7 @@ export function AddressBookSection() {
                         {addr.is_default && (
                           <Badge
                             variant="secondary"
-                            className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary font-medium border-primary/20"
+                            className="text-[10px] px-2 py-0.5 bg-brand-yellow text-brand-brown font-semibold border-brand-brown/20"
                           >
                             {t("account.addresses.defaultBadge")}
                           </Badge>
@@ -371,7 +371,7 @@ export function AddressBookSection() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleSetDefault(addr.id)}
-                        className="text-xs h-7 px-2 text-muted-foreground hover:text-primary"
+                        className="text-xs h-7 px-2 text-muted-foreground hover:text-brand-brown"
                       >
                         <Star className="h-3.5 w-3.5 mr-1" />
                         <span>{t("account.addresses.setDefault")}</span>
@@ -412,7 +412,7 @@ export function AddressBookSection() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
             <h3 className="font-heading text-lg font-semibold flex items-center gap-2 text-foreground">
-              <CreditCard className="h-5 w-5 text-primary" />
+              <CreditCard className="h-5 w-5 text-brand-brown" />
               <span>{t("account.addresses.billingTitle")}</span>
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
@@ -540,6 +540,7 @@ export function AddressBookSection() {
             <Button
               onClick={() => handleSaveAddress(true)}
               disabled={isSubmitting}
+              className="bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium"
             >
               {isSubmitting ? (
                 <>
@@ -608,7 +609,7 @@ export function AddressBookSection() {
                 onChange={(e) =>
                   setCurrentAddress((prev) => ({ ...prev, is_default: e.target.checked }))
                 }
-                className="h-4 w-4 rounded border-input text-primary"
+                className="h-4 w-4 rounded border-input text-brand-brown focus:ring-brand-brown"
               />
               <span className="text-xs sm:text-sm font-medium text-foreground">
                 Set as default delivery address
@@ -627,6 +628,7 @@ export function AddressBookSection() {
             <Button
               onClick={() => handleSaveAddress(false)}
               disabled={isSubmitting}
+              className="bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium"
             >
               {isSubmitting ? (
                 <>
@@ -674,6 +676,7 @@ export function AddressBookSection() {
             <Button
               onClick={handleSaveBilling}
               disabled={isSubmitting}
+              className="bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium"
             >
               {isSubmitting ? (
                 <>

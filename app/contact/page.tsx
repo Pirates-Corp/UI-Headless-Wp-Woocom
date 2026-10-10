@@ -15,7 +15,6 @@ import { getWhatsAppChatUrl } from "@/lib/utils/whatsapp";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ContactCopyButton } from "@/components/contact/contact-copy-button";
-import { ContactFAQ } from "@/components/contact/contact-faq";
 import { InstagramIcon, YouTubeIcon, WhatsAppIcon } from "@/components/contact/contact-icons";
 
 export const metadata: Metadata = {
@@ -43,15 +42,15 @@ export default function ContactPage() {
   return (
     <>
       {/* 1. Hero Section */}
-      <section className="border-b border-brand-brown/15 bg-brand-yellow/60">
+      <section className="border-b border-white/10 bg-black text-white">
         <div className="container mx-auto px-4 py-14 text-center md:px-6 md:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--gold-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
             Contact &amp; Support
           </p>
-          <h1 className="mx-auto mt-4 max-w-3xl text-balance font-heading text-4xl font-bold tracking-tight text-brand-brown sm:text-5xl">
+          <h1 className="mx-auto mt-4 max-w-3xl text-balance font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Get in Touch with Our Studio
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-balance text-base sm:text-lg leading-relaxed text-brand-brown/85">
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-base sm:text-lg leading-relaxed text-white/85">
             Whether you have a question about an order, want to inquire about custom artwork or
             3D sculptures, or simply want to connect with our studio, we are here to help.
           </p>
@@ -418,11 +417,8 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* 5. Modern FAQ Section */}
-      <ContactFAQ />
-
-      {/* 6. Bottom Reassurance Call to Action */}
-      <section className="border-t border-brand-brown/15 bg-brand-yellow/60">
+      {/* 5. Bottom Reassurance Call to Action */}
+      <section className="border-t border-brand-brown/15 bg-brand-yellow">
         <div className="container mx-auto px-4 py-12 text-center md:px-6 md:py-16">
           <h2 className="font-heading text-2xl font-bold text-brand-brown md:text-3xl">
             Still Have Questions?

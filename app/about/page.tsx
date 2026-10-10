@@ -44,19 +44,19 @@ export default function AboutPage() {
   return (
     <>
       {/* Hero */}
-      <section className="border-b border-brand-brown/15 bg-brand-yellow/60">
+      <section className="border-b border-white/10 bg-black text-white">
         <div className="container mx-auto px-4 py-16 text-center md:px-6 md:py-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--gold-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
             About Us
           </p>
-          <h1 className="mx-auto mt-4 max-w-3xl text-balance font-heading text-4xl font-bold tracking-tight text-brand-brown sm:text-5xl">
+          <h1 className="mx-auto mt-4 max-w-3xl text-balance font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Welcome to Clay Brush Studio
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-8 text-brand-brown/80">
+          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-8 text-white/90">
             At Clay Brush Studio, we believe that art can bring beauty, meaning, and a special
             feeling into everyday life.
           </p>
-          <p className="mx-auto mt-4 max-w-2xl text-balance leading-7 text-muted-foreground">
+          <p className="mx-auto mt-4 max-w-2xl text-balance leading-7 text-white/75">
             We are a creative studio based in India, combining traditional art with modern
             technology to create unique products for your home.
           </p>
@@ -149,14 +149,14 @@ export default function AboutPage() {
       </section>
 
       {/* Closing */}
-      <section className="border-t border-brand-brown/15 bg-brand-yellow/60">
+      <section className="border-t border-brand-brown/15 bg-brand-yellow">
         <div className="container mx-auto px-4 py-14 text-center md:px-6">
           <p className="font-heading text-2xl font-bold text-brand-brown md:text-3xl">
             Thank you for visiting Clay Brush Studio
           </p>
           <Link
             href="/shop"
-            className={cn(buttonVariants({ size: "default" }), "mt-8 inline-flex gap-2")}
+            className={cn(buttonVariants({ size: "default" }), "mt-8 inline-flex gap-2 bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium")}
           >
             Explore the Store <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
