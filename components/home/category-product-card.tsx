@@ -81,13 +81,21 @@ export function CategoryProductCard({ product }: CategoryProductCardProps) {
         onClick={() => trackSelectItem(productToEcommerceItem(product), "Home Category Grid", product.prices.currency_code)}
       >
         {image ? (
-          <Image
-            src={image.src}
-            alt={image.alt || decodeHtml(product.name)}
-            fill
-            className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          />
+          <>
+            <Image
+              src={image.src}
+              alt={image.alt || decodeHtml(product.name)}
+              fill
+              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            />
+            {/* Glaze: a soft diagonal sheen that keeps sweeping across the image while hovered */}
+            <span
+              aria-hidden="true"
+              data-testid="card-glaze"
+              className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1/2 -skew-x-12 -translate-x-[150%] bg-linear-to-r from-transparent via-white/60 to-transparent group-hover:animate-glaze motion-reduce:hidden"
+            />
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm">
             {t("product.noImageAlt")}
