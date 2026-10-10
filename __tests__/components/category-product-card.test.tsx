@@ -28,8 +28,8 @@ const baseProduct = {
   type: "simple",
 } as unknown as WooProduct;
 
-describe("CategoryProductCard hover image", () => {
-  it("renders the second product image as a hidden hover layer", () => {
+describe("CategoryProductCard hover glaze", () => {
+  it("shows only the primary image, even when the product has more", () => {
     const product = {
       ...baseProduct,
       images: [
@@ -41,20 +41,15 @@ describe("CategoryProductCard hover image", () => {
     const { container } = render(<CategoryProductCard product={product} />);
 
     const imgs = container.querySelectorAll("img");
-    expect(imgs).toHaveLength(2);
-    expect(imgs[0].className).toContain("group-hover:opacity-0");
-    expect(imgs[1].className).toContain("opacity-0");
-    expect(imgs[1].className).toContain("group-hover:opacity-100");
-    expect(imgs[1]).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByTestId("card-glaze")).toBeInTheDocument();
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toHaveAttribute("alt", "Shiva Lingam");
   });
 
-  it("keeps the primary image visible on hover when there is only one image", () => {
-    const { container } = render(<CategoryProductCard product={baseProduct} />);
+  it("loops the glaze sheen while the card is hovered", () => {
+    render(<CategoryProductCard product={baseProduct} />);
 
-    const imgs = container.querySelectorAll("img");
-    expect(imgs).toHaveLength(1);
-    expect(imgs[0].className).not.toContain("group-hover:opacity-0");
-    expect(screen.getByTestId("card-glaze")).toBeInTheDocument();
+    const glaze = screen.getByTestId("card-glaze");
+    expect(glaze.className).toContain("group-hover:animate-glaze");
+    expect(glaze.className).toContain("motion-reduce:hidden");
   });
 });

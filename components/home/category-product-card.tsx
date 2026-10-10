@@ -26,8 +26,6 @@ export function CategoryProductCard({ product }: CategoryProductCardProps) {
 
   const { current } = formatProductPrice(product.prices);
   const image = product.images[0];
-  // Second gallery image (if any) is revealed on hover
-  const hoverImage = product.images[1];
 
   // Derive subtitle from short_description or primary category
   const rawDesc = product.short_description ? stripHtml(product.short_description).trim() : "";
@@ -88,26 +86,14 @@ export function CategoryProductCard({ product }: CategoryProductCardProps) {
               src={image.src}
               alt={image.alt || decodeHtml(product.name)}
               fill
-              className={`object-contain p-2 group-hover:scale-105 transition-[opacity,scale] duration-500 ease-out motion-reduce:transition-none ${
-                hoverImage ? "group-hover:opacity-0" : ""
-              }`}
+              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             />
-            {hoverImage && (
-              <Image
-                src={hoverImage.src}
-                alt=""
-                aria-hidden="true"
-                fill
-                className="object-contain p-2 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-[opacity,scale] duration-500 ease-out motion-reduce:transition-none"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-              />
-            )}
-            {/* Glaze: a soft diagonal sheen that sweeps across the image on hover */}
+            {/* Glaze: a soft diagonal sheen that keeps sweeping across the image while hovered */}
             <span
               aria-hidden="true"
               data-testid="card-glaze"
-              className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1/2 -skew-x-12 -translate-x-[150%] bg-linear-to-r from-transparent via-white/60 to-transparent transition-transform duration-0 ease-out group-hover:translate-x-[350%] group-hover:duration-700 motion-reduce:hidden"
+              className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1/2 -skew-x-12 -translate-x-[150%] bg-linear-to-r from-transparent via-white/60 to-transparent group-hover:animate-glaze motion-reduce:hidden"
             />
           </>
         ) : (
