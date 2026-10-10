@@ -149,14 +149,14 @@ export default function AboutPage() {
       </section>
 
       {/* Closing */}
-      <section className="border-t border-brand-brown/15 bg-brand-yellow/60">
+      <section className="border-t border-brand-brown/15 bg-brand-yellow">
         <div className="container mx-auto px-4 py-14 text-center md:px-6">
           <p className="font-heading text-2xl font-bold text-brand-brown md:text-3xl">
             Thank you for visiting Clay Brush Studio
           </p>
           <Link
             href="/shop"
-            className={cn(buttonVariants({ size: "default" }), "mt-8 inline-flex gap-2")}
+            className={cn(buttonVariants({ size: "default" }), "mt-8 inline-flex gap-2 bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium")}
           >
             Explore the Store <ArrowRight className="size-4" aria-hidden="true" />
           </Link>

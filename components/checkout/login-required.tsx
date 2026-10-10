@@ -59,13 +59,13 @@ export function LoginRequired({ returnUrl }: LoginRequiredProps) {
         <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href={loginHref}
-            className={buttonVariants({ size: "lg" })}
+            className={cn(buttonVariants({ size: "lg" }), "bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none gap-2 font-medium")}
           >
             {t("checkout.loginRequiredLogin")}
           </Link>
           <Link
             href={registerHref}
-            className={buttonVariants({ variant: "outline", size: "lg" })}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "border-brand-brown/30 text-brand-brown hover:bg-brand-yellow hover:border-brand-brown gap-2 font-medium")}
           >
             {t("checkout.loginRequiredSignup")}
           </Link>
