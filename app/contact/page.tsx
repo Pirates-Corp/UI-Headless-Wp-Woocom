@@ -15,7 +15,6 @@ import { getWhatsAppChatUrl } from "@/lib/utils/whatsapp";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ContactCopyButton } from "@/components/contact/contact-copy-button";
-import { ContactFAQ } from "@/components/contact/contact-faq";
 import { InstagramIcon, YouTubeIcon, WhatsAppIcon } from "@/components/contact/contact-icons";
 
 export const metadata: Metadata = {
@@ -418,10 +417,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* 5. Modern FAQ Section */}
-      <ContactFAQ />
-
-      {/* 6. Bottom Reassurance Call to Action */}
+      {/* 5. Bottom Reassurance Call to Action */}
       <section className="border-t border-brand-brown/15 bg-brand-yellow/60">
         <div className="container mx-auto px-4 py-12 text-center md:px-6 md:py-16">
           <h2 className="font-heading text-2xl font-bold text-brand-brown md:text-3xl">
