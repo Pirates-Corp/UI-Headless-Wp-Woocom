@@ -75,8 +75,8 @@ export function WishlistPageContent() {
             {t('wishlist.emptyHint')}
           </p>
         </div>
-        <Link href="/shop" className={buttonVariants({ size: "lg" })}>
-          <ShoppingBag className="mr-2 h-4 w-4" />
+        <Link href="/shop" className={cn(buttonVariants({ size: "lg" }), "bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium gap-2 px-6")}>
+          <ShoppingBag className="h-4 w-4" />
           {t('wishlist.browseCollection')}
         </Link>
       </main>
