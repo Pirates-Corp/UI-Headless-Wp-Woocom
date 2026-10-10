@@ -118,8 +118,8 @@ export function Header({ initialCategories = [] }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-brown/15 bg-brand-yellow">
       {/* Tamil brand blessing bar */}
-      <div className="w-full bg-brand-brown text-brand-yellow text-center py-1 px-4">
-        <span className="text-[11px] sm:text-xs md:text-sm font-medium tracking-wide">
+      <div className="w-full bg-brand-brown text-brand-yellow text-center px-4 py-0.5">
+        <span className="block text-[8px] font-medium tracking-wide leading-none">
           ஶ்ரீ பட்டவன் துணை
         </span>
       </div>
@@ -138,7 +138,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 "relative py-1 font-medium transition-colors duration-200 tracking-wide",
                 pathname === "/"
                   ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
+                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300"
               )}
             >
               Home
@@ -158,7 +158,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                     "relative py-1 font-medium transition-colors duration-200 tracking-wide flex items-center gap-1",
                     isStoreActive
                       ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                      : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
+                      : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300"
                   )}
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
@@ -183,7 +183,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
               {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-brand-brown/15 bg-white/95 backdrop-blur-md p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-150 z-50 text-brand-brown"
+                  className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-brand-brown/15 bg-white/95 backdrop-blur-md p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2"
                   role="menu"
                   aria-label="Store Categories"
                 >
@@ -237,7 +237,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                           </span>
                         </div>
                         {cat.count > 0 && (
-                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-brown/10 text-brand-brown/70 group-hover:bg-brand-brown group-hover:text-brand-yellow transition-colors shrink-0 ml-2">
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-brown/10 text-brand-brown/70 group-hover:bg-brand-brown group-hover:text-brand-yellow transition-colors shrink-0">
                             {cat.count}
                           </span>
                         )}
@@ -255,7 +255,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 "relative py-1 font-medium transition-colors duration-200 tracking-wide",
                 pathname === "/about"
                   ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
+                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300"
               )}
             >
               About
@@ -268,7 +268,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
                 "relative py-1 font-medium transition-colors duration-200 tracking-wide",
                 pathname === "/contact"
                   ? "text-brand-brown font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown"
-                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200",
+                  : "text-brand-brown/75 hover:text-brand-brown after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-brown after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300"
               )}
             >
               Contact
@@ -289,7 +289,7 @@ export function Header({ initialCategories = [] }: HeaderProps) {
         </div>
 
         {/* Actions (Wishlist, Cart, User, Mobile Hamburger) - order-2 on mobile, order-3 on tablet/desktop */}
-        <div className="flex items-center gap-1 sm:gap-2 order-2 md:order-3 text-brand-brown [&_a]:text-brand-brown [&_button]:text-brand-brown [&_svg]:text-brand-brown [&_a:hover]:text-brand-brown [&_button:hover]:text-brand-brown [&_a:hover]:bg-brand-brown/10 [&_button:hover]:bg-brand-brown/10 [&_span.rounded-full]:bg-brand-brown [&_span.rounded-full]:text-brand-yellow">
+        <div className="flex items-center gap-1 sm:gap-2 order-2 md:order-3 text-brand-brown [&_a]:text-brand-brown [&_button]:text-brand-brown [&_svg]:text-brand-brown [&_a:hover]:text-brand-brown">
           <ThemeToggle />
           <WishlistIcon />
           <CartSheet />
