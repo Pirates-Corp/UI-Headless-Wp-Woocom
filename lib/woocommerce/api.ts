@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type {
   WooProduct,
   WooStoreOrder,
@@ -920,15 +921,122 @@ export async function getProductsMeta(
   return { products, totalPages: isNaN(totalPages) ? 1 : totalPages };
 }
 
-export async function getProduct(idOrSlug: string): Promise<WooProduct> {
-  const currency = await getCurrencySettings();
+// ─── Single product (product page) ───────────────────────────────────────────
 
+/**
+ * v3 fields the storefront actually reads (see WooV3Product / WooV3Variation and
+ * normalizeV3Product / normalizeV3Variation). Sending `_fields` lets WooCommerce
+ * skip building and serializing everything else (meta_data, related_ids,
+ * upsells, dimensions, etc.), which is a measurable share of each REST call.
+ *
+ * If you start reading a new v3 field in the normalizers, add it here too.
+ */
+const V3_PRODUCT_FIELDS = [
+  "id", "name", "slug", "type", "status", "description", "short_description",
+  "sku", "permalink", "price", "regular_price", "sale_price", "on_sale",
+  "purchasable", "stock_status", "manage_stock", "stock_quantity",
+  "low_stock_amount", "backorders", "backorders_allowed", "backordered",
+  "average_rating", "rating_count", "featured", "categories", "brands", "tags",
+  "images", "attributes", "variations", "external_url", "button_text",
+].join(",");
+
+const V3_VARIATION_FIELDS = [
+  "id", "price", "regular_price", "sale_price", "on_sale", "stock_status",
+  "manage_stock", "stock_quantity", "low_stock_amount", "backorders",
+  "backorders_allowed", "backordered", "purchasable", "attributes", "image",
+].join(",");
+
+/**
+ * Fetch product + variations in ONE WordPress request via the
+ * `myapp/v1/product/{slug}` mu-plugin route (wp-content/mu-plugins/custom-product-endpoint.php).
+ *
+ * Returns:
+ *   - the bundle on success
+ *   - `null` when WordPress says the product does not exist
+ *   - `undefined` when the route is unavailable (not deployed, key missing,
+ *     server error) so the caller can fall back to the multi-request path.
+ */
+async function fetchProductBundle(
+  idOrSlug: string,
+): Promise<{ product: WooV3Product; variations: WooV3Variation[] } | null | undefined> {
+  const authKey = process.env.MYAPP_CART_AUTH_KEY;
+  if (!authKey) return undefined;
+
+  const url = new URL(
+    `${WP_URL}/wp-json/myapp/v1/product/${encodeURIComponent(idOrSlug)}`,
+  );
+  url.searchParams.set("product_fields", V3_PRODUCT_FIELDS);
+  url.searchParams.set("variation_fields", V3_VARIATION_FIELDS);
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { "X-MyApp-Auth-Key": authKey },
+      cache: "no-store",
+    });
+
+    if (res.status === 404) {
+      const body = (await res.json().catch(() => null)) as { code?: string } | null;
+      // Product genuinely missing → null. Route missing (rest_no_route) → fall back.
+      return body?.code === "myapp_product_not_found" ? null : undefined;
+    }
+
+    if (!res.ok) {
+      console.warn(
+        `[getProduct] Product bundle endpoint returned ${res.status}; falling back to wc/v3.`,
+      );
+      return undefined;
+    }
+
+    const json = (await res.json()) as {
+      product?: WooV3Product;
+      variations?: WooV3Variation[];
+    };
+    if (!json?.product) return undefined;
+
+    return {
+      product: json.product,
+      variations: Array.isArray(json.variations) ? json.variations : [],
+    };
+  } catch (err) {
+    console.warn("[getProduct] Product bundle endpoint failed; falling back to wc/v3:", err);
+    return undefined;
+  }
+}
+
+/**
+ * Fetch a single product (by slug, falling back to numeric ID) with full variation data.
+ *
+ * Wrapped in React `cache()` so `generateMetadata` and the page component share
+ * one result per request instead of each hitting WordPress. This is per-request
+ * de-duplication only — nothing is reused across visitors, data is always fresh.
+ */
+export const getProduct = cache(async (idOrSlug: string): Promise<WooProduct> => {
+  const [currency, bundle] = await Promise.all([
+    getCurrencySettings(),
+    fetchProductBundle(idOrSlug),
+  ]);
+
+  if (bundle === null) {
+    throw new Error(`Product not found: ${idOrSlug}`);
+  }
+  if (bundle) {
+    return normalizeV3Product(bundle.product, currency, bundle.variations);
+  }
+
+  return getProductViaV3(idOrSlug, currency);
+});
+
+/** Legacy multi-request path (slug lookup → variations). Used when the bundle route is unavailable. */
+async function getProductViaV3(
+  idOrSlug: string,
+  currency: CurrencySettings,
+): Promise<WooProduct> {
   // Try to find by slug first
   let raw: WooV3Product | null = null;
   const bySlug = await restApiFetchJson<WooV3Product[]>(
     "/products",
     { cache: "no-store" },
-    { slug: idOrSlug },
+    { slug: idOrSlug, _fields: V3_PRODUCT_FIELDS },
   );
   if (bySlug.length > 0) {
     raw = bySlug[0];
@@ -937,6 +1045,7 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
     raw = await restApiFetchJson<WooV3Product>(
       `/products/${idOrSlug}`,
       { cache: "no-store" },
+      { _fields: V3_PRODUCT_FIELDS },
     );
   }
 
@@ -951,7 +1060,7 @@ export async function getProduct(idOrSlug: string): Promise<WooProduct> {
       fullVariations = await restApiFetchJson<WooV3Variation[]>(
         `/products/${raw.id}/variations`,
         { cache: "no-store" },
-        { per_page: "100" },
+        { per_page: "100", _fields: V3_VARIATION_FIELDS },
       );
     } catch (err) {
       console.warn(`[getProduct] Failed to fetch variations for product ${raw.id}:`, err);
