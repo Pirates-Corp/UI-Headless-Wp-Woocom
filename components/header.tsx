@@ -118,8 +118,8 @@ export function Header({ initialCategories = [] }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-brown/15 bg-brand-yellow">
       {/* Tamil brand blessing bar */}
-      <div className="w-full bg-brand-brown text-brand-yellow text-center px-4 py-0.5">
-        <span className="block text-[8px] font-medium tracking-wide leading-none">
+      <div className="w-full bg-brand-brown text-brand-yellow text-center py-1 px-4">
+        <span className="text-[11px] sm:text-xs md:text-sm font-medium tracking-wide">
           ஶ்ரீ பட்டவன் துணை
         </span>
       </div>
