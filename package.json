@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 3091",
-    "start:clay_dev_branch": "next start -p 4121",
+    "start:clay_dev_branch": "NODE_ENV=production next start -p 4121",
     "lint": "eslint",
     "analyze": "ANALYZE=true next build",
     "knip": "knip",
