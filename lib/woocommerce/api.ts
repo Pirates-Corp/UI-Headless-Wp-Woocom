@@ -717,7 +717,12 @@ export async function getCategories(params?: {
   try {
     const raw = await restApiFetchJson<WooCategory[]>(
       "/products/categories",
-      { next: { revalidate: 3600 } },
+      {
+        next: {
+          revalidate: process.env.NODE_ENV === "development" ? 0 : 3600,
+          tags: ["categories"],
+        },
+      },
       searchParams,
     );
     return raw;
@@ -732,7 +737,12 @@ export async function getCategoryBySlug(slug: string): Promise<WooCategory | nul
   try {
     const raw = await restApiFetchJson<WooCategory[]>(
       "/products/categories",
-      { next: { revalidate: 3600 } },
+      {
+        next: {
+          revalidate: process.env.NODE_ENV === "development" ? 0 : 3600,
+          tags: ["categories"],
+        },
+      },
       { slug },
     );
     return raw[0] ?? null;
@@ -781,7 +791,12 @@ export async function getCategory(idOrSlug: string | number): Promise<WooCategor
     try {
       return await restApiFetchJson<WooCategory>(
         `/products/categories/${idOrSlug}`,
-        { next: { revalidate: 3600 } },
+        {
+          next: {
+            revalidate: process.env.NODE_ENV === "development" ? 0 : 3600,
+            tags: ["categories"],
+          },
+        },
       );
     } catch {
       return null;

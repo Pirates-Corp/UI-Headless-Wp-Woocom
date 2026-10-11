@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,9 @@ export async function POST(req: NextRequest) {
   if (product?.slug) {
     revalidatePath(`/product/${product.slug}`);
   }
+  revalidateTag("categories", "max");
   revalidatePath("/shop");
+  revalidatePath("/", "layout");
   revalidatePath("/");
 
   return NextResponse.json({ revalidated: true });
