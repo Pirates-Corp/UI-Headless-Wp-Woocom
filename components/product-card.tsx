@@ -2,13 +2,13 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { WooProduct } from "@/lib/woocommerce/types";
 import { formatProductPrice, decodeHtml } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/defaultbutton";
 import { WishlistButton } from "@/components/wishlist-button";
+import { ProductCardImage } from "@/components/product-card-image";
 import { useCartStore } from "@/lib/store/cart-store";
 import { useBuyNowStore } from "@/lib/store/buy-now-store";
 import { toast } from "sonner";
@@ -94,36 +94,30 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="group relative flex flex-col justify-between h-full rounded-xl transition-all duration-300">
       {/* Top: Image + Badges + Wishlist */}
-      <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-secondary/60 mb-3">
+      <div className="group/image relative aspect-[3/4] overflow-hidden rounded-lg bg-secondary/60 mb-3">
         <Link
           href={`/product/${product.slug}`}
           className="relative block w-full h-full"
           onClick={() => trackSelectItem(productToEcommerceItem(product), "Product List", product.prices.currency_code)}
         >
-          {image ? (
-            <Image
-              src={image.src}
-              alt={image.alt || decodeHtml(product.name)}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-              {t('product.noImageAlt')}
-            </div>
-          )}
+          <ProductCardImage
+            primaryImage={image}
+            galleryImages={product.images}
+            alt={decodeHtml(product.name)}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            imageClassName="object-cover"
+          />
 
           {/* Hover overlay */}
-          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/8 transition-colors duration-300 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100">
-            <span className="bg-background/95 backdrop-blur-sm text-foreground text-[11px] font-medium tracking-[0.15em] uppercase px-3.5 py-1.5 rounded-full shadow-sm translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+          <div className="absolute inset-0 z-20 pointer-events-none bg-foreground/0 group-hover/image:bg-foreground/8 transition-colors duration-300 flex items-end justify-center pb-4 opacity-0 group-hover/image:opacity-100">
+            <span className="bg-background/95 backdrop-blur-sm text-foreground text-[11px] font-medium tracking-[0.15em] uppercase px-3.5 py-1.5 rounded-full shadow-sm translate-y-2 group-hover/image:translate-y-0 transition-transform duration-300">
               {t('product.viewProduct')}
             </span>
           </div>
         </Link>
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
+        <div className="absolute top-3 left-3 z-30 flex flex-col gap-1.5 pointer-events-none">
           {onSale && (
             <Badge className="text-[10px] tracking-wider uppercase font-medium px-2 py-0.5 bg-[var(--gold)] text-white border-0 hover:bg-[var(--gold)]">
               {t('product.saleBadge')}
@@ -137,7 +131,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Wishlist button */}
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-3 right-3 z-30">
           <WishlistButton product={product} size="sm" />
         </div>
       </div>
