@@ -5,8 +5,9 @@ module.exports = {
 
       cwd: "/var/lib/jenkins/workspace/Clay Brush Ecomm Website Dev",
 
-      script: "node_modules/next/dist/bin/next",
-      args: "start -p 4121",
+      script: "pnpm",
+      // script: "node_modules/next/dist/bin/next",
+      args: "run start -p 4121",
 
       instances: 1,
       exec_mode: "fork",
