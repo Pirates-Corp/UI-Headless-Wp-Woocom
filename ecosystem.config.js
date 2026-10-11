@@ -7,7 +7,7 @@ module.exports = {
 
       script: "pnpm",
       // script: "node_modules/next/dist/bin/next",
-      // args: "run start -p 4121",
+      args: "run start -p 4121",
 
       instances: 1,
       exec_mode: "fork",
