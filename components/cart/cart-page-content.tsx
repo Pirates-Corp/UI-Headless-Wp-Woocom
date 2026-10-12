@@ -52,7 +52,13 @@ export function CartPageContent() {
         <p className="text-muted-foreground mt-2">
           {t('cart.emptyHint')}
         </p>
-        <Link href="/shop" className={cn(buttonVariants({ size: "lg" }), "mt-6")}>
+        <Link
+          href="/shop"
+          className={cn(
+            buttonVariants({ size: "lg" }),
+            "mt-6 bg-brand-brown text-brand-yellow hover:bg-brand-brown/90 shadow-none font-medium"
+          )}
+        >
           {t('cart.continueShopping')}
         </Link>
       </div>

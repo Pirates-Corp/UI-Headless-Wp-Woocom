@@ -27,7 +27,7 @@ export async function CategoryProductsSection() {
   }
 
   return (
-    <section className="w-full bg-[#f8f2dc] py-14 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-brand-brown/15">
+    <section className="w-full bg-[#FEF7C9] py-14 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-brand-brown/15">
       <div className="max-w-7xl mx-auto space-y-16 sm:space-y-20">
         {visibleSections.map(({ category: cat, products }) => {
           // Format category title matching design

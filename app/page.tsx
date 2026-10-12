@@ -5,6 +5,7 @@ import { CategoryProductsSection } from "@/components/home/category-products-sec
 import { JsonLdScript } from "@/components/analytics/json-ld-script";
 import { t } from "@/lib/i18n";
 import { AboutTheStudio } from "@/components/home/about-the-studio";
+import { ContactFAQ } from "@/components/contact/contact-faq";
 
 export const revalidate = 3600;
 
@@ -47,7 +48,7 @@ export default function HomePage() {
       <CategoriesSection />
       <CategoryProductsSection />
       <AboutTheStudio />
-    
+      <ContactFAQ />
     </>
   );
 }

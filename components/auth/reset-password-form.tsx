@@ -133,7 +133,7 @@ export function ResetPasswordForm({
     <div className="w-full max-w-md mx-auto">
       <div className="rounded-2xl border border-border/70 bg-card/80 backdrop-blur-sm p-5 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/30">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-full bg-brand-brown/10 text-brand-brown flex items-center justify-center mx-auto mb-3">
             <KeyRound className="h-6 w-6" />
           </div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">
@@ -240,7 +240,7 @@ export function ResetPasswordForm({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-10 mt-2 text-sm font-medium gap-2 shadow-sm"
+            className="w-full h-10 mt-2 text-sm font-medium gap-2 shadow-none bg-brand-brown text-brand-yellow hover:bg-brand-brown/90"
           >
             {isSubmitting ? (
               <>

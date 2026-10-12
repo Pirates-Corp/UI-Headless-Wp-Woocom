@@ -186,15 +186,15 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
         
         {/* Mode Switcher Tabs (Only visible when not on Forgot Password) */}
         {mode !== "forgot-password" && (
-          <div className="grid grid-cols-2 p-1 mb-8 rounded-xl bg-muted/60 border border-border/40">
+          <div className="grid grid-cols-2 p-1 mb-8 rounded-xl bg-brand-brown/5 border border-brand-brown/15">
             <button
               type="button"
               onClick={() => setMode("login")}
               className={cn(
                 "py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer",
                 mode === "login"
-                  ? "bg-background text-foreground shadow-sm font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-brand-brown text-brand-yellow shadow-xs font-semibold"
+                  : "text-brand-brown/70 hover:text-brand-brown hover:bg-brand-brown/10"
               )}
             >
               Sign In
@@ -205,8 +205,8 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
               className={cn(
                 "py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer",
                 mode === "register"
-                  ? "bg-background text-foreground shadow-sm font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-brand-brown text-brand-yellow shadow-xs font-semibold"
+                  : "text-brand-brown/70 hover:text-brand-brown hover:bg-brand-brown/10"
               )}
             >
               Create Account
@@ -264,7 +264,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
                       setForgotSuccess(false);
                       setMode("forgot-password");
                     }}
-                    className="text-xs text-primary hover:underline font-medium"
+                    className="text-xs text-brand-brown hover:underline font-medium"
                   >
                     Forgot password?
                   </button>
@@ -299,7 +299,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 mt-2 text-sm font-medium gap-2 shadow-sm"
+                className="w-full h-10 mt-2 text-sm font-medium gap-2 shadow-none bg-brand-brown text-brand-yellow hover:bg-brand-brown/90"
               >
                 {isLoading ? (
                   <>
@@ -342,7 +342,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
               <button
                 type="button"
                 onClick={() => setMode("register")}
-                className="text-primary hover:underline font-semibold cursor-pointer"
+                className="text-brand-brown hover:underline font-semibold cursor-pointer"
               >
                 Sign up now
               </button>
@@ -499,7 +499,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 mt-2 text-sm font-medium gap-2 shadow-sm"
+                className="w-full h-10 mt-2 text-sm font-medium gap-2 shadow-none bg-brand-brown text-brand-yellow hover:bg-brand-brown/90"
               >
                 {isLoading ? (
                   <>
@@ -542,7 +542,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className="text-primary hover:underline font-semibold cursor-pointer"
+                className="text-brand-brown hover:underline font-semibold cursor-pointer"
               >
                 Sign in
               </button>
@@ -554,7 +554,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
         {mode === "forgot-password" && (
           <div>
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 rounded-full bg-brand-brown/10 text-brand-brown flex items-center justify-center mx-auto mb-3">
                 <KeyRound className="h-6 w-6" />
               </div>
               <h1 className="font-heading text-2xl font-bold tracking-tight">
@@ -581,7 +581,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
                     setLoginEmail(forgotEmail);
                     setMode("login");
                   }}
-                  className="mt-2 text-xs"
+                  className="mt-2 text-xs border-brand-brown/30 text-brand-brown hover:bg-brand-yellow/30 hover:border-brand-brown font-medium"
                 >
                   Return to Sign In
                 </Button>
@@ -612,7 +612,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
                 <Button
                   type="submit"
                   disabled={isForgotSubmitting}
-                  className="w-full h-10 text-sm font-medium gap-2 shadow-sm"
+                  className="w-full h-10 text-sm font-medium gap-2 shadow-none bg-brand-brown text-brand-yellow hover:bg-brand-brown/90"
                 >
                   {isForgotSubmitting ? (
                     <>
@@ -628,7 +628,7 @@ export function AuthForm({ initialMode = "login" }: AuthFormProps) {
                   <button
                     type="button"
                     onClick={() => setMode("login")}
-                    className="text-xs text-muted-foreground hover:text-foreground font-medium hover:underline cursor-pointer"
+                    className="text-xs text-brand-brown/80 hover:text-brand-brown font-medium hover:underline cursor-pointer"
                   >
                     &larr; Back to Sign In
                   </button>

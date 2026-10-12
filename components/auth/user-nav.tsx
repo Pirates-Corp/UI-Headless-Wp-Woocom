@@ -135,11 +135,11 @@ export function UserNav() {
           <img
             src={user.avatarUrl}
             alt={displayName}
-            className="w-6 h-6 rounded-full object-cover border border-primary/20 shrink-0"
+            className="w-6 h-6 rounded-full object-cover border border-brand-brown/20 shrink-0"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center border border-primary/20 shrink-0">
+          <span className="w-6 h-6 rounded-full bg-brand-brown/10 text-brand-brown text-[11px] font-semibold flex items-center justify-center border border-brand-brown/20 shrink-0">
             {initials}
           </span>
         )}
@@ -168,11 +168,11 @@ export function UserNav() {
                 <img
                   src={user.avatarUrl}
                   alt={displayName}
-                  className="w-9 h-9 rounded-full object-cover border border-primary/20 shrink-0"
+                  className="w-9 h-9 rounded-full object-cover border border-brand-brown/20 shrink-0"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center border border-primary/20 shrink-0">
+                <div className="w-9 h-9 rounded-full bg-brand-brown/15 text-brand-brown text-xs font-bold flex items-center justify-center border border-brand-brown/20 shrink-0">
                   {initials}
                 </div>
               )}
@@ -187,7 +187,7 @@ export function UserNav() {
             </div>
             {user.roles && user.roles.length > 0 && (
               <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                <ShieldCheck className="w-3 h-3 text-primary" />
+                <ShieldCheck className="w-3 h-3 text-brand-brown" />
                 <span>{user.roles.join(", ")}</span>
               </div>
             )}
@@ -200,7 +200,7 @@ export function UserNav() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm text-foreground hover:bg-accent transition-colors group"
             >
-              <UserCheck className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <UserCheck className="h-4 w-4 text-muted-foreground group-hover:text-brand-brown transition-colors" />
               <span>My Account</span>
             </Link>
 
@@ -209,7 +209,7 @@ export function UserNav() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm text-foreground hover:bg-accent transition-colors group"
             >
-              <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <Package className="h-4 w-4 text-muted-foreground group-hover:text-brand-brown transition-colors" />
               <span>Orders & Purchases</span>
             </Link>
 
@@ -218,7 +218,7 @@ export function UserNav() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm text-foreground hover:bg-accent transition-colors group"
             >
-              <Heart className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <Heart className="h-4 w-4 text-muted-foreground group-hover:text-brand-brown transition-colors" />
               <span>Saved Wishlist</span>
             </Link>
           </div>

@@ -156,7 +156,7 @@ export function AccountPageContent() {
       <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-sm p-6 sm:p-8 shadow-sm mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4 sm:gap-5">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 text-primary text-xl sm:text-2xl font-bold flex items-center justify-center border border-primary/20 shadow-inner overflow-hidden shrink-0">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-brand-brown/10 text-brand-brown text-xl sm:text-2xl font-bold flex items-center justify-center border border-brand-brown/20 shadow-inner overflow-hidden shrink-0">
               {user?.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
@@ -216,10 +216,10 @@ export function AccountPageContent() {
         {/* Orders Card */}
         <Link
           href="/account/orders"
-          className="group rounded-xl border border-border/70 bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+          className="group rounded-xl border border-border/70 bg-card p-5 hover:border-brand-brown/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
         >
           <div>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-lg bg-brand-brown/10 text-brand-brown flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
               <Package className="h-5 w-5" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
@@ -229,7 +229,7 @@ export function AccountPageContent() {
               Track recent orders, view purchase history, and receipts.
             </p>
           </div>
-          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-primary">
+          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-brand-brown">
             <span>View Orders</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -238,7 +238,7 @@ export function AccountPageContent() {
         {/* Wishlist Card */}
         <Link
           href="/wishlist"
-          className="group rounded-xl border border-border/70 bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+          className="group rounded-xl border border-border/70 bg-card p-5 hover:border-brand-brown/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
         >
           <div>
             <div className="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -251,7 +251,7 @@ export function AccountPageContent() {
               Access your saved 3D prints and wishlist items.
             </p>
           </div>
-          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-primary">
+          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-brand-brown">
             <span>View Wishlist</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -260,10 +260,10 @@ export function AccountPageContent() {
         {/* Shop Card */}
         <Link
           href="/shop"
-          className="group rounded-xl border border-border/70 bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+          className="group rounded-xl border border-border/70 bg-card p-5 hover:border-brand-brown/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
         >
           <div>
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
               <ShoppingBag className="h-5 w-5" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
@@ -273,7 +273,7 @@ export function AccountPageContent() {
               Explore our curated collection of 3D prints.
             </p>
           </div>
-          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-primary">
+          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-medium text-brand-brown">
             <span>Browse Products</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -284,7 +284,7 @@ export function AccountPageContent() {
         {/* Profile Overview Details */}
         <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm">
           <h3 className="font-heading text-lg font-semibold mb-6 flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
+            <User className="h-5 w-5 text-brand-brown" />
             <span>Profile Information</span>
           </h3>
 
@@ -333,7 +333,7 @@ export function AccountPageContent() {
         <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="font-heading text-lg font-semibold mb-6 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
+              <ShieldCheck className="h-5 w-5 text-brand-brown" />
               <span>Sign-In & Security</span>
             </h3>
 
@@ -357,7 +357,7 @@ export function AccountPageContent() {
                     variant="outline"
                     className="gap-1.5 py-1 px-2.5 text-xs font-medium bg-background border-border/80"
                   >
-                    <KeyRound className="h-3.5 w-3.5 text-primary" />
+                    <KeyRound className="h-3.5 w-3.5 text-brand-brown" />
                     <span>Password</span>
                   </Badge>
                 )}
@@ -367,7 +367,7 @@ export function AccountPageContent() {
             {/* Password Configuration Flow */}
             <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                <div className="p-2 rounded-lg bg-brand-brown/10 text-brand-brown shrink-0 mt-0.5">
                   <KeyRound className="h-4 w-4" />
                 </div>
                 <div className="space-y-1">
@@ -396,7 +396,7 @@ export function AccountPageContent() {
                   size="sm"
                   disabled={isSendingReset}
                   onClick={handlePasswordRequest}
-                  className="mt-4 text-xs font-medium h-9 w-full sm:w-auto"
+                  className="mt-4 text-xs font-medium h-9 w-full sm:w-auto border-brand-brown/30 text-brand-brown hover:bg-brand-yellow/30 hover:border-brand-brown"
                 >
                   {isSendingReset ? (
                     <>
