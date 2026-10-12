@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import { useWishlistStore } from "@/lib/store/wishlist-store";
-import Image from "next/image";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/defaultbutton";
 import { Badge } from "@/components/ui/badge";
-import { formatProductPrice } from "@/lib/utils/format";
+import { ProductCardImage } from "@/components/product-card-image";
+import { formatProductPrice, decodeHtml } from "@/lib/utils/format";
 import { Heart, ShoppingBag, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -131,23 +131,17 @@ export function WishlistPageContent() {
 
               <Link href={`/product/${item.slug}`} className="inner-group block">
                 {/* Image */}
-                <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-secondary/60 mb-4">
-                  {image ? (
-                    <Image
-                      src={image.src}
-                      alt={image.alt || item.name}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-                      {t('wishlist.noImage')}
-                    </div>
-                  )}
+                <div className="group/image relative aspect-[3/4] overflow-hidden rounded-lg bg-secondary/60 mb-4">
+                  <ProductCardImage
+                    primaryImage={image}
+                    galleryImages={item.images}
+                    alt={decodeHtml(item.name)}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    imageClassName="object-cover"
+                  />
 
                   {/* Badges */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                  <div className="absolute top-3 left-3 z-30 flex flex-col gap-1.5">
                     {onSale && (
                       <Badge className="text-[10px] tracking-wider uppercase font-medium px-2 py-0.5 bg-[var(--gold)] text-white border-0 hover:bg-[var(--gold)]">
                         {t('wishlist.saleBadge')}

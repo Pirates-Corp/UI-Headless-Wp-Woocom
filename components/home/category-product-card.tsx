@@ -2,10 +2,10 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { WooProduct } from "@/lib/woocommerce/types";
+import { ProductCardImage } from "@/components/product-card-image";
 import { formatProductPrice, decodeHtml, stripHtml } from "@/lib/utils/format";
 import { useCartStore } from "@/lib/store/cart-store";
 import { useBuyNowStore } from "@/lib/store/buy-now-store";
@@ -77,30 +77,16 @@ export function CategoryProductCard({ product }: CategoryProductCardProps) {
       {/* Product Image Area */}
       <Link
         href={`/product/${product.slug}`}
-        className="relative aspect-square w-full overflow-hidden bg-white flex items-center justify-center p-3"
+        className="group/image relative aspect-square w-full overflow-hidden bg-white flex items-center justify-center p-3"
         onClick={() => trackSelectItem(productToEcommerceItem(product), "Home Category Grid", product.prices.currency_code)}
       >
-        {image ? (
-          <>
-            <Image
-              src={image.src}
-              alt={image.alt || decodeHtml(product.name)}
-              fill
-              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            />
-            {/* Glaze: a soft diagonal sheen that keeps sweeping across the image while hovered */}
-            <span
-              aria-hidden="true"
-              data-testid="card-glaze"
-              className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1/2 -skew-x-12 -translate-x-[150%] bg-linear-to-r from-transparent via-white/60 to-transparent group-hover:animate-glaze motion-reduce:hidden"
-            />
-          </>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm">
-            {t("product.noImageAlt")}
-          </div>
-        )}
+        <ProductCardImage
+          primaryImage={image}
+          galleryImages={product.images}
+          alt={decodeHtml(product.name)}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          imageClassName="object-contain p-2"
+        />
       </Link>
 
       {/* Product Details & Actions */}
