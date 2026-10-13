@@ -1,13 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: "Clay_Brush_Ecomm_Website_Dev",
+      name: "Clay_Brush_Ecomm_Website_Prod",
 
-      cwd: "/var/lib/jenkins/workspace/Clay Brush Ecomm Website Dev",
+      cwd: "/var/lib/jenkins/workspace/Clay Brush Ecomm Website Prod",
 
       script: "pnpm",
       // script: "node_modules/next/dist/bin/next",
-      args: "run start -p 4121",
+      args: "run start -p 3121",
 
       instances: 1,
       exec_mode: "fork",
